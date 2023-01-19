@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "crowemi-trade"
+version = "0.1.0"
+description = ""
+authors = ["crowemi <crowemi@hotmail.com>"]
+readme = "README.md"
+packages = [{include = "crowemi_trade"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.28.2"
+boto3 = "^1.26.52"
+polygon-api-client = "^1.6.1"
+smart-open = "^6.3.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
