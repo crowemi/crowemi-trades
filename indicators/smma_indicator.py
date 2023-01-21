@@ -1,6 +1,6 @@
 import pandas
 
-from indicators.base import BaseIndicator
+from indicators.base_indicator import BaseIndicator
 
 class SmmaIndicator(BaseIndicator):
     '''Calculates the smoothed moving average for the dataset for the given periods.'''

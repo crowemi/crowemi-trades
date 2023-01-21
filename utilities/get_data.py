@@ -2,21 +2,22 @@ import os
 import json
 from datetime import datetime, timezone
 
-from polygon import RESTClient
+from storage.s3_storage import S3Storage
+from helpers.core import t_to_utc
+from helpers.polygon_helper import PolygonHelper
 
-from helpers import t_to_utc
+POLYGON_HELPER = PolygonHelper()
 
 def main():
     # we want to be able to get aggs for a series of dates for any given symbol
     # we want te be able to enrich the aggs with other indicators
 
-    client = RESTClient(api_key=os.getenv('polygon_key'))
-    agg = client.get_aggs(
+    agg = POLYGON_HELPER.client.get_aggs(
         "C:EURUSD",
         5, # five minute
         "minute",
-        "2023-01-01",
-        "2023-01-01",
+        "2023-01-02",
+        "2023-01-02",
         raw=True,
     )
         # "c": close
@@ -37,6 +38,7 @@ def main():
         print(r['t_utc'])
 
     print(agg)
+
 
 
 if __name__ == "__main__":
