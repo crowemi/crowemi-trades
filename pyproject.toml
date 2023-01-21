@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "crowemi-trade"
+name = "crowemi-trades"
 version = "0.1.0"
 description = ""
 authors = ["crowemi <crowemi@hotmail.com>"]
