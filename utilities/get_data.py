@@ -1,23 +1,24 @@
-import os
 import json
-from datetime import datetime, timezone
+import polars
+import pandas
 
-from storage.s3_storage import S3Storage
-from helpers.core import t_to_utc
 from helpers.polygon_helper import PolygonHelper
+from storage.s3_storage import S3Storage
 
 POLYGON_HELPER = PolygonHelper()
+S3_STORAGE = S3Storage()
 
-def main():
+
+def get_daily_data(ticker: str, interval: str, interval_period: int, start_date: str, end_date: str):
     # we want to be able to get aggs for a series of dates for any given symbol
     # we want te be able to enrich the aggs with other indicators
 
     agg = POLYGON_HELPER.client.get_aggs(
-        "C:EURUSD",
-        5, # five minute
-        "minute",
-        "2023-01-02",
-        "2023-01-02",
+        ticker,
+        interval_period, # five minute
+        interval,
+        start_date,
+        end_date,
         raw=True,
     )
         # "c": close
@@ -28,18 +29,7 @@ def main():
         # "t": unix ms timestamp,
         # "v": trading volume,
         # "vw": volume weighted average price
+    df = polars.DataFrame(data=json.loads(agg.data))
+    S3_STORAGE.write("crowemi-trades/EURUSD/5/20230102", df)
 
-    ret = json.loads(agg.data)
-    list(map(lambda x: t_to_utc(x), ret['results']))
-
-    # list(map(lambda x :dict: x["t_utc"]=datetime.fromtimestamp(x['t']/1000).astimezone(timezone.utc), ret['results']))
-    # map(lambda x: )
-    for r in ret['results']:
-        print(r['t_utc'])
-
-    print(agg)
-
-
-
-if __name__ == "__main__":
-    main()
+    print(agg.data)
