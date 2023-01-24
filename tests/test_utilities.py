@@ -1,5 +1,6 @@
 import unittest
 
+
 from utilities.get_data import *
 
 
@@ -9,9 +10,13 @@ class TestUtilities(unittest.TestCase):
             ticker="C:EURUSD",
             interval_period=5,
             interval="minute",
-            start_date="2023-01-02",
-            end_date="2023-01-02"
+            start_date="2023-01-03",
+            end_date="2023-01-03",
+            bucket="crowemi-trades"
         )
+
+        assert True
+
 
 
 if __name__ == "__main__":

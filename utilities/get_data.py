@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 import polars
 import pandas
 
@@ -9,18 +10,27 @@ POLYGON_HELPER = PolygonHelper()
 S3_STORAGE = S3Storage()
 
 
-def get_daily_data(ticker: str, interval: str, interval_period: int, start_date: str, end_date: str):
+def get_daily_data(
+        ticker: str, 
+        interval: str, 
+        interval_period: int, 
+        start_date: str, 
+        end_date: str,
+        bucket: str
+    ):
     # we want to be able to get aggs for a series of dates for any given symbol
-    # we want te be able to enrich the aggs with other indicators
 
-    agg = POLYGON_HELPER.client.get_aggs(
-        ticker,
-        interval_period, # five minute
-        interval,
-        start_date,
-        end_date,
-        raw=True,
-    )
+    # agg = POLYGON_HELPER.client.get_aggs(
+    #     ticker,
+    #     interval_period,
+    #     interval,
+    #     start_date,
+    #     end_date,
+    #     raw=True,
+    # )
+
+    for x in range(10):
+        POLYGON_HELPER.get_aggs()
         # "c": close
         # "h": high
         # "l": low
@@ -30,6 +40,7 @@ def get_daily_data(ticker: str, interval: str, interval_period: int, start_date:
         # "v": trading volume,
         # "vw": volume weighted average price
     df = polars.DataFrame(data=json.loads(agg.data))
-    S3_STORAGE.write("crowemi-trades/EURUSD/5/20230102", df)
+    file_name = datetime.strptime(start_date, '%Y-%m-%d')
+    S3_STORAGE.write(f"{bucket}/{ticker}/{interval}/{interval_period}/{file_name.year}{file_name.month:02}{file_name.day:02}", df)
 
     print(agg.data)
