@@ -41,6 +41,14 @@ class PolygonHelper:
         start_date: str,
         end_date: str,
     ):
+        # "c": close
+        # "h": high
+        # "l": low
+        # "n": number of transactions,
+        # "o": open
+        # "t": unix ms timestamp,
+        # "v": trading volume,
+        # "vw": volume weighted average price
         return self._client.get_aggs(
             ticker,
             interval_period,
