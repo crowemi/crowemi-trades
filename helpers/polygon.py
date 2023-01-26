@@ -20,6 +20,8 @@ class PolygonHelper:
         self.requests = 0
 
     def throttle(func):
+        """Decorator to throttle requests to Polygon."""
+
         @functools.wraps(func)
         def wrapper(*args, **kwrags):
             wrapper.time.append(time.time())
@@ -37,23 +39,27 @@ class PolygonHelper:
         self,
         ticker: str,
         interval: str,
-        interval_period: int,
+        timespan: int,
         start_date: str,
         end_date: str,
+        raw: bool,
     ):
-        # "c": close
-        # "h": high
-        # "l": low
-        # "n": number of transactions,
-        # "o": open
-        # "t": unix ms timestamp,
-        # "v": trading volume,
-        # "vw": volume weighted average price
+        """Polygon get_aggs wrapper
+        ---
+        "c": close
+        "h": high
+        "l": low
+        "n": number of transactions,
+        "o": open
+        "t": unix ms timestamp,
+        "v": trading volume,
+        "vw": volume weighted average price
+        """
         return self._client.get_aggs(
             ticker,
-            interval_period,
             interval,
+            timespan,
             start_date,
             end_date,
-            raw=True,
+            raw=raw,
         )
