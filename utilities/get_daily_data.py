@@ -49,32 +49,38 @@ if __name__ == "__main__":
         description="This program calls Polygon API to collect and store stock prices for given parameters.",
     )
 
-    parser.add_argument("-t", "--ticker", required=True)
-    parser.add_argument("-ip", "--interval-period", required=True)
     parser.add_argument(
-        "-t",
+        "-t", "--ticker", help="The ticker symbol of the stock/equity.", required=True
+    )
+    parser.add_argument(
+        "-i", "--interval", help="The size of the timespan multiplier.", required=True
+    )
+    parser.add_argument(
+        "-ts",
         "--timespan",
-        help="",
+        help="The size of the time window.",
         choices=["minute", "hour", "day", "week", "month", "quarter", "year"],
         required=True,
     )
-    parser.add_argument("-sd", "--start-date", help="format: %Y-%m-%d", required=True)
-    parser.add_argument("-ed", "--end-date", help="format: %Y-%m-%d", required=True)
+    parser.add_argument("-sd", "--start-date", required=True)
+    parser.add_argument("-ed", "--end-date", required=True)
     parser.add_argument("-b", "--bucket", help="The S3 bucket to store prices")
 
     args = parser.parse_args()
-    args.ticker
 
-    # from env var or passed as args
-    bucket = os.getenv("bucket", None)
+    # check passed args, then env var
+    bucket = args.bucket if args.bucket else os.getenv("bucket", None)
     if not bucket:
         raise Exception("No bucket supplied.")
 
+    start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
+
     get_daily_data(
-        ticker="C:EURUSD",
-        interval=5,
-        timespan="minute",
-        start_date=datetime(year=2022, month=1, day=1),
-        end_date=datetime(year=2023, month=1, day=25),
-        bucket="crowemi-trades",
+        ticker=args.ticker,
+        interval=args.interval,
+        timespan=args.timespan,
+        start_date=start_date,
+        end_date=end_date,
+        bucket=bucket,
     )
