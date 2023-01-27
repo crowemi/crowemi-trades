@@ -8,11 +8,12 @@ packages = [
     { include = "helpers" },
     { include = "indicators" },
     { include = "storage" },
-    { include = "strategies" }
+    { include = "strategies" },
+    { include = "utilities" }
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 boto3 = "^1.26.52"
 polygon-api-client = "^1.6.1"
 smart-open = "^6.3.0"
