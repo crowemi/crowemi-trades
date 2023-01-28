@@ -4,8 +4,8 @@ import json
 from datetime import datetime, timedelta
 import polars
 
-from helpers.polygon import PolygonHelper
-from storage.s3_storage import S3Storage
+from crowemi_trades.helpers.polygon import PolygonHelper
+from crowemi_trades.storage.s3_storage import S3Storage
 
 
 def get_daily_data(

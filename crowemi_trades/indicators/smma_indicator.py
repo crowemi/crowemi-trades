@@ -1,6 +1,6 @@
 from polars import DataFrame
 
-from indicators.base_indicator import BaseIndicator
+from crowemi_trades.indicators.base_indicator import BaseIndicator
 
 
 class SmmaIndicator(BaseIndicator):

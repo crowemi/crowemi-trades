@@ -1,4 +1,4 @@
-from helpers.polygon import PolygonHelper
+from crowemi_trades.helpers.polygon import PolygonHelper
 
 
 def test_get_aggs():
