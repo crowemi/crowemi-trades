@@ -5,11 +5,7 @@ description = ""
 authors = ["crowemi <crowemi@hotmail.com>"]
 readme = "README.md"
 packages = [
-    { include = "helpers" },
-    { include = "indicators" },
-    { include = "storage" },
-    { include = "strategies" },
-    { include = "utilities" }
+    { include = "crowemi_trades" }
 ]
 
 [tool.poetry.dependencies]
