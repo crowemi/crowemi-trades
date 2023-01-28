@@ -8,7 +8,6 @@ COPY get_daily_data.py ${LAMBDA_TASK_ROOT}
 
 # Install dependencies
 RUN python -m pip install --upgrade pip
-RUN pip install git+https://github.com/crowemi/crowemi-trades.git@0.1.0
+RUN pip install git+https://github.com/crowemi/crowemi-trades.git@0.1.1
 
-# CMD [ "get_data.handler" ]
-CMD [ "sh" ]
+CMD [ "get_data.handler" ]
