@@ -69,7 +69,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # check passed args, then env var
-    bucket = args.bucket if args.bucket else os.getenv("bucket", None)
+    bucket = args.bucket if args.bucket else os.getenv("BUCKET", None)
     if not bucket:
         raise Exception("No bucket supplied.")
 
