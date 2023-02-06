@@ -11,7 +11,7 @@ class PolygonHelper:
     def __init__(self, polygon_token: str = None) -> None:
         # if token not passed, is it in env
         polygon_token = (
-            polygon_token if polygon_token is not None else os.getenv("polygon_key")
+            polygon_token if polygon_token is not None else os.getenv("POLYGON_KEY")
         )
         if not polygon_token:
             raise Exception("No polgygon token found.")

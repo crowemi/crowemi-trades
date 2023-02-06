@@ -16,8 +16,15 @@ def get_daily_data(
     end_date: datetime,
     bucket: str,
 ):
-    # we want to be able to get aggs for a series of dates for any given symbol
-
+    """A process function for getting and storing data. \n
+    ---
+    ticker: the ticket symbol of the asset request. \n
+    timespan: \n
+    interval: \n
+    start_date: \n
+    end_date: \n
+    bucket: \n
+    """
     date_range = list()
     while start_date <= end_date:
         date_range.append(start_date)
@@ -35,7 +42,7 @@ def get_daily_data(
         if ret.status == 200:
             df = polars.DataFrame(data=json.loads(ret.data))
             S3Storage().write(
-                f"{bucket}/{ticker}/{timespan}/{interval}/{date.year}{date.month:02}{date.day:02}",
+                f"{bucket}/{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}",
                 df,
             )
         else:
@@ -69,7 +76,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # check passed args, then env var
-    bucket = args.bucket if args.bucket else os.getenv("bucket", None)
+    bucket = args.bucket if args.bucket else os.getenv("BUCKET", None)
     if not bucket:
         raise Exception("No bucket supplied.")
 
