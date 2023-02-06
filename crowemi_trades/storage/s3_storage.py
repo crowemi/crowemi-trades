@@ -4,10 +4,10 @@ from polars import DataFrame, from_arrow, concat
 from concurrent.futures import ThreadPoolExecutor
 import pyarrow.parquet as pq
 from pyarrow import fs
-import s3fs
 
 from crowemi_trades.storage.base_storage import BaseStorage
 from crowemi_trades.helpers.core import debug
+from crowemi_helps.aws.aws_s3 import AwsS3
 
 
 class S3Storage(BaseStorage):
@@ -15,13 +15,46 @@ class S3Storage(BaseStorage):
         self,
         access_key: str = None,
         secret_access_key: str = None,
+        region: str = None,
     ) -> None:
         self.access_key = os.getenv("AWS_ACCESS_KEY_ID", access_key)
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
+        self.region = os.getenv("AWS_REGION", "us-west-2")
 
         super().__init__(type="aws", region="us-west-2")
 
+        self.aws_client = AwsS3(region)
         self._create_file_system()
+
+    def get_list_objects(
+        self,
+        bucket: str,
+        prefix: str,
+        limit: int = None,
+        start_date: datetime = None,
+        end_date: datetime = None,
+    ) -> list:
+        """A method to get a listing of objects from S3."""
+        list_objects = list()
+        next_token = None
+        bucket = bucket if bucket else self.bucket
+        while True:
+            ret = self.aws_client.list_objects(
+                prefix=prefix,
+                bucket=bucket,
+                next_token=next_token,
+            )
+            if "Contents" in ret:
+                list(map(lambda x: list_objects.append(x), ret["Contents"]))
+                if "NextContinuationToken" in ret:
+                    next_token = ret["NextContinuationToken"]
+                    break
+                else:
+                    break
+            else:
+                self.LOGGER.warning(f"No objects at path s3://{bucket}/{prefix}.")
+                break
+        return list_objects
 
     def _create_file_system(self):
         """Creates a pyarrow filesystem object."""
