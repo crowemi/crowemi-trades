@@ -34,7 +34,14 @@ class S3Storage(BaseStorage):
         start_date: datetime = None,
         end_date: datetime = None,
     ) -> list:
-        """A method to get a listing of objects from S3."""
+        """A method to get a listing of objects from S3. \n
+        ---
+        bucket: \n
+        prefix: \n
+        limit: \n
+        start_date: \n
+        end_date: \n
+        """
         list_objects = list()
         next_token = None
         bucket = bucket if bucket else self.bucket
@@ -88,8 +95,8 @@ class S3Storage(BaseStorage):
     ) -> DataFrame:
         """Reads multiple files from storage into a single dataframe.\n
         ---
-        bucket: \n
-        file_list: \n
+        bucket: the S3 bucket containing the files. \n
+        file_list: the file list to read. \n
         """
         primary = list[DataFrame()]
         file_list = list(map(lambda x: {"key": x["Key"], "bucket": bucket}, file_list))

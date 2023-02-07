@@ -8,6 +8,8 @@ from pyarrow import fs
 from abc import ABCMeta, abstractmethod
 import boto3
 
+from crowemi_trades.helpers.logging import *
+
 STORAGE_TYPES = [
     "aws",
 ]
@@ -15,11 +17,13 @@ STORAGE_TYPES = [
 
 class BaseStorage(metaclass=ABCMeta):
     def __init__(self, type: str, region: str) -> None:
-
-        self.LOGGER = logging.getLogger("crowemi-trades.storage")
+        self.LOGGER = create_logger(__name__)
+        self.LOGGER.debug("BaseStorage enter.")
 
         if type not in STORAGE_TYPES:
             raise Exception("Invalid storage type.")
+
+        self.LOGGER.debug("BaseStorage exit.")
 
     @abstractmethod
     def write():
