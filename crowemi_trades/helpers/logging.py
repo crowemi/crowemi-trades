@@ -20,7 +20,7 @@ def create_logger(name: str) -> Logger:
         raise Exception(f"Invalid log level. {log_level}")
 
     logger = getLogger(name)
-    handler = FileHandler(f"logs/{name}.log")
+    handler = FileHandler(f"./logs/{name}.log", mode="w")
     handler.setLevel(log_level)
 
     format = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
