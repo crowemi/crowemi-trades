@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from polars import DataFrame, from_arrow, concat
+import polars
 from concurrent.futures import ThreadPoolExecutor
 import pyarrow.parquet as pq
 from pyarrow import fs
@@ -34,7 +34,14 @@ class S3Storage(BaseStorage):
         start_date: datetime = None,
         end_date: datetime = None,
     ) -> list:
-        """A method to get a listing of objects from S3."""
+        """A method to get a listing of objects from S3. \n
+        ---
+        bucket: \n
+        prefix: \n
+        limit: \n
+        start_date: \n
+        end_date: \n
+        """
         list_objects = list()
         next_token = None
         bucket = bucket if bucket else self.bucket
@@ -65,16 +72,38 @@ class S3Storage(BaseStorage):
 
     def _combine_data(
         self,
-        primary: DataFrame,
-        incoming: DataFrame,
-    ) -> DataFrame:
+        primary: polars.DataFrame,
+        incoming: polars.DataFrame,
+    ) -> polars.DataFrame:
         """Combines raw dataframes into single dataframe."""
         self.LOGGER.debug("Enter _combine_data.")
         try:
             if primary.is_empty():
                 primary = incoming
             else:
-                primary = concat([primary, incoming], how="vertical")
+                if len(primary.columns) != len(incoming.columns):
+                    self.LOGGER.warn(
+                        f"DataFrame sizes don't match. Primary ({len(primary.columns)}); Incoming ({len(incoming.columns)})."
+                    )
+                    self.LOGGER.warn("Attempting to reconcile descrepencies.")
+                    for col in primary.columns:
+                        if not col in incoming.columns:
+                            incoming.with_column(
+                                polars.Series(name=col, values=None),
+                            )
+                            self.LOGGER.debug(
+                                f"{col} added to incoming. Incoming ({len(incoming.columns)})."
+                            )
+                    for col in incoming.columns:
+                        if not col in primary.columns:
+                            primary.with_column(
+                                polars.Series(name=col, values=None),
+                            )
+                            self.LOGGER.debug(
+                                f"{col} added to primary. Primary ({len(primary.columns)})."
+                            )
+
+                primary = polars.concat([primary, incoming], how="vertical")
         except Exception as e:
             self.LOGGER.error("Unable to concat dataframes")
             self.LOGGER.exception(e)
@@ -85,31 +114,31 @@ class S3Storage(BaseStorage):
         self,
         bucket: str,
         file_list: list,
-    ) -> DataFrame:
+    ) -> polars.DataFrame:
         """Reads multiple files from storage into a single dataframe.\n
         ---
-        bucket: \n
-        file_list: \n
+        bucket: the S3 bucket containing the files. \n
+        file_list: the file list to read. \n
         """
-        primary = list[DataFrame()]
+        primary = list[polars.DataFrame()]
         file_list = list(map(lambda x: {"key": x["Key"], "bucket": bucket}, file_list))
         with ThreadPoolExecutor(5) as tp:
             primary = list(tp.map(self._read_from_list_object, file_list))
 
         if len(primary) > 0:
-            ret = DataFrame()
+            ret = polars.DataFrame()
             for df in primary:
                 ret = self._combine_data(ret, df)
         return ret
 
-    def _read_from_list_object(self, keys: list) -> DataFrame:
+    def _read_from_list_object(self, keys: list) -> polars.DataFrame:
         return self.read(keys["bucket"], keys["key"])
 
     def read(
         self,
         bucket: str,
         key: str,
-    ) -> DataFrame:
+    ) -> polars.DataFrame:
         """Reads a parquet object from S3."""
         ret = None
 
@@ -120,13 +149,13 @@ class S3Storage(BaseStorage):
 
         try:
             dataset = pq.ParquetDataset(f"{bucket}/{key}", filesystem=self.file_system)
-            ret = from_arrow(dataset.read())
+            ret = polars.from_arrow(dataset.read())
         except Exception as e:
             self.LOGGER.error("Failed to read parquet file to S3.")
             self.LOGGER.exception(e)
         return ret
 
-    def write(self, key: str, df: DataFrame) -> None:
+    def write(self, key: str, df: polars.DataFrame) -> None:
         """Writes a parquet object to S3."""
         try:
             compression = "gzip"  # TODO: support multiple compression types
