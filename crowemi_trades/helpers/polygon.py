@@ -38,8 +38,8 @@ class PolygonHelper:
     def get_aggregates(
         self,
         ticker: str,
-        interval: str,
-        timespan: int,
+        interval: int,
+        timespan: str,
         start_date: str,
         end_date: str,
         raw: bool,

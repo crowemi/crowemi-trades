@@ -1,4 +1,5 @@
 import unittest
+import json
 
 from crowemi_trades.helpers.polygon import PolygonHelper
 
@@ -14,4 +15,7 @@ class TestPolygon(unittest.TestCase):
                 end_date="2023-01-03",
                 raw=True,
             )
+            with open("tests/data.json", "w") as f:
+                j = json.loads(d.data)
+                f.write(json.dumps(j))
             assert d
