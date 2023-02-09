@@ -14,7 +14,8 @@ boto3 = "~1.26"
 polygon-api-client = "^1.6.1"
 polars = "^0.15.16"
 pyarrow = "^10.0.1"
-crowemi-helps = {git = "https://github.com/crowemi/crowemi-helps.git", rev = "0.1.8"}
+crowemi-helps = {git = "https://github.com/crowemi/crowemi-helps.git", rev = "0.1.9"}
+pandas = "^1.5.3"
 
 [tool.poetry.group.trade.dependencies]
 ta-lib = "^0.4.25"

@@ -6,7 +6,6 @@ import pyarrow.parquet as pq
 from pyarrow import fs
 
 from crowemi_trades.storage.base_storage import BaseStorage
-from crowemi_trades.helpers.core import debug
 from crowemi_helps.aws.aws_s3 import AwsS3
 
 
@@ -155,13 +154,18 @@ class S3Storage(BaseStorage):
             self.LOGGER.exception(e)
         return ret
 
-    def write(self, key: str, df: polars.DataFrame) -> None:
-        """Writes a parquet object to S3."""
+    def write(self, bucket: str, key: str, df: polars.DataFrame) -> None:
+        """Writes a parquet object to S3.
+        ---
+        key: S3 key {bucket}/{key}; exclude extension.`
+        df: Polars DataFrame
+        """
         try:
+            # TODO: check key for extension, or add extension param
             compression = "gzip"  # TODO: support multiple compression types
             data, schema = self.create_data_table(df)
             pq.ParquetWriter(
-                f"{key}.parquet.{compression}",
+                f"{bucket}/{key}.parquet.{compression}",
                 schema,
                 compression=compression,
                 filesystem=self.file_system,

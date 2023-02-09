@@ -42,7 +42,8 @@ def get_daily_data(
         if ret.status == 200:
             df = polars.DataFrame(data=json.loads(ret.data))
             S3Storage().write(
-                f"{bucket}/{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}",
+                bucket,
+                f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}",
                 df,
             )
         else:
@@ -50,7 +51,6 @@ def get_daily_data(
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         prog="Get Daily Data",
         description="This program calls Polygon API to collect and store stock prices for given parameters.",
