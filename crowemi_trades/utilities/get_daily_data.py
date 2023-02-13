@@ -41,13 +41,15 @@ def get_daily_data(
         )
         if ret.status == 200:
             df = polars.DataFrame(data=json.loads(ret.data))
-            S3Storage().write(
+            S3Storage().write_parquet(
                 bucket,
                 f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}",
                 df,
             )
+            return True
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
+            return False
 
 
 if __name__ == "__main__":
