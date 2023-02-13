@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "crowemi-trades"
-version = "0.1.8"
+version = "0.1.10"
 description = ""
 authors = ["crowemi <crowemi@hotmail.com>"]
 readme = "README.md"
@@ -14,8 +14,9 @@ boto3 = "~1.26"
 polygon-api-client = "^1.6.1"
 polars = "^0.15.16"
 pyarrow = "^10.0.1"
-crowemi-helps = {git = "https://github.com/crowemi/crowemi-helps.git", rev = "0.1.9"}
+crowemi-helps = {git = "https://github.com/crowemi/crowemi-helps.git", rev = "0.1.10"}
 pandas = "^1.5.3"
+smart-open = "^6.3.0"
 
 [tool.poetry.group.trade.dependencies]
 ta-lib = "^0.4.25"

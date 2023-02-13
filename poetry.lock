@@ -178,7 +178,7 @@ lxml = ["lxml"]
 name = "black"
 version = "23.1.0"
 description = "The uncompromising code formatter."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -376,7 +376,7 @@ pycparser = "*"
 name = "click"
 version = "8.1.3"
 description = "Composable command line interface toolkit"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -391,7 +391,7 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 files = [
@@ -419,7 +419,7 @@ test = ["pytest"]
 
 [[package]]
 name = "crowemi-helps"
-version = "0.1.8"
+version = "0.1.10"
 description = "A collection of helper classes."
 category = "main"
 optional = false
@@ -428,14 +428,14 @@ files = []
 develop = false
 
 [package.dependencies]
-black = "^23.1.0"
 boto3 = "^1.26.55"
+smart-open = "^6.3.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/crowemi/crowemi-helps.git"
-reference = "0.1.8"
-resolved_reference = "136e46178769e8832d67f3093a8120efda871409"
+reference = "0.1.10"
+resolved_reference = "2d39f297c0d4762178c0dee1ec7934666df738ad"
 
 [[package]]
 name = "debugpy"
@@ -1058,7 +1058,7 @@ files = [
 name = "mypy-extensions"
 version = "1.0.0"
 description = "Type system extensions for programs checked with the mypy type checker."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.5"
 files = [
@@ -1293,7 +1293,7 @@ files = [
 name = "packaging"
 version = "23.0"
 description = "Core utilities for Python packages"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1378,7 +1378,7 @@ testing = ["docopt", "pytest (<6.0.0)"]
 name = "pathspec"
 version = "0.11.0"
 description = "Utility library for gitignore style pattern matching of file paths."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1417,7 +1417,7 @@ files = [
 name = "platformdirs"
 version = "3.0.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2001,6 +2001,28 @@ files = [
 ]
 
 [[package]]
+name = "smart-open"
+version = "6.3.0"
+description = "Utils for streaming large files (S3, HDFS, GCS, Azure Blob Storage, gzip, bz2...)"
+category = "main"
+optional = false
+python-versions = ">=3.6,<4.0"
+files = [
+    {file = "smart_open-6.3.0-py3-none-any.whl", hash = "sha256:b4c9ae193ad6d3e7add50944b86afa0d150bd821ab8ec21edb26d9a06b66f6a8"},
+    {file = "smart_open-6.3.0.tar.gz", hash = "sha256:d5238825fe9a9340645fac3d75b287c08fbb99fb2b422477de781c9f5f09e019"},
+]
+
+[package.extras]
+all = ["azure-common", "azure-core", "azure-storage-blob", "boto3", "google-cloud-storage (>=2.6.0)", "paramiko", "requests"]
+azure = ["azure-common", "azure-core", "azure-storage-blob"]
+gcs = ["google-cloud-storage (>=2.6.0)"]
+http = ["requests"]
+s3 = ["boto3"]
+ssh = ["paramiko"]
+test = ["azure-common", "azure-core", "azure-storage-blob", "boto3", "google-cloud-storage (>=2.6.0)", "moto[server]", "paramiko", "pytest", "pytest-rerunfailures", "requests", "responses"]
+webhdfs = ["requests"]
+
+[[package]]
 name = "sniffio"
 version = "1.3.0"
 description = "Sniff out which async library your code is running under"
@@ -2102,7 +2124,7 @@ test = ["flake8", "isort", "pytest"]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2354,4 +2376,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.9"
-content-hash = "de8880728ed2e618e436c4749b7434b8451447b507a8b7c0f16a7938659140e4"
+content-hash = "e20cfb280d50daaddfdf7d198aedb6f73f283d5ddae71996f0683391ebd539fb"

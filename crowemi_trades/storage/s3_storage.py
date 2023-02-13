@@ -1,12 +1,11 @@
 import os
+import boto3
 from datetime import datetime
 import polars
 from concurrent.futures import ThreadPoolExecutor
 import pyarrow.parquet as pq
-from pyarrow import fs
 
 from crowemi_trades.storage.base_storage import BaseStorage
-from crowemi_helps.aws.aws_s3 import AwsS3
 
 
 class S3Storage(BaseStorage):
@@ -20,10 +19,30 @@ class S3Storage(BaseStorage):
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
         self.region = os.getenv("AWS_REGION", "us-west-2")
 
-        super().__init__(type="aws", region="us-west-2")
+        super().__init__(type="aws")
 
-        self.aws_client = AwsS3(region)
-        self._create_file_system()
+        self.aws_client = boto3.client("s3")
+        self.file_system = self._create_file_system()
+
+    def read(
+        self,
+    ):
+        pass
+
+    def read_content(
+        self,
+        bucket: str,
+        key: str,
+    ) -> str:
+        return super().read_content(bucket, key)
+
+    def write(
+        self,
+        bucket: str,
+        key: str,
+        contents: bytes,
+    ):
+        return super().write(bucket, key, contents)
 
     def get_list_objects(
         self,
@@ -45,11 +64,17 @@ class S3Storage(BaseStorage):
         next_token = None
         bucket = bucket if bucket else self.bucket
         while True:
-            ret = self.aws_client.list_objects(
-                prefix=prefix,
-                bucket=bucket,
-                next_token=next_token,
-            )
+            if next_token:
+                ret = self.aws_client.list_objects_v2(
+                    Bucket=bucket,
+                    Prefix=prefix,
+                    ContinuationToken=next_token,
+                )
+            else:
+                ret = self.aws_client.list_objects_v2(
+                    Bucket=bucket,
+                    Prefix=prefix,
+                )
             if "Contents" in ret:
                 list(map(lambda x: list_objects.append(x), ret["Contents"]))
                 if "NextContinuationToken" in ret:
@@ -62,54 +87,7 @@ class S3Storage(BaseStorage):
                 break
         return list_objects
 
-    def _create_file_system(self):
-        """Creates a pyarrow filesystem object."""
-        self.file_system = fs.S3FileSystem(
-            access_key=self.access_key,
-            secret_key=self.secret_access_key,
-        )
-
-    def _combine_data(
-        self,
-        primary: polars.DataFrame,
-        incoming: polars.DataFrame,
-    ) -> polars.DataFrame:
-        """Combines raw dataframes into single dataframe."""
-        self.LOGGER.debug("Enter _combine_data.")
-        try:
-            if primary.is_empty():
-                primary = incoming
-            else:
-                if len(primary.columns) != len(incoming.columns):
-                    self.LOGGER.warn(
-                        f"DataFrame sizes don't match. Primary ({len(primary.columns)}); Incoming ({len(incoming.columns)})."
-                    )
-                    self.LOGGER.warn("Attempting to reconcile descrepencies.")
-                    for col in primary.columns:
-                        if not col in incoming.columns:
-                            incoming.with_column(
-                                polars.Series(name=col, values=None),
-                            )
-                            self.LOGGER.debug(
-                                f"{col} added to incoming. Incoming ({len(incoming.columns)})."
-                            )
-                    for col in incoming.columns:
-                        if not col in primary.columns:
-                            primary.with_column(
-                                polars.Series(name=col, values=None),
-                            )
-                            self.LOGGER.debug(
-                                f"{col} added to primary. Primary ({len(primary.columns)})."
-                            )
-
-                primary = polars.concat([primary, incoming], how="vertical")
-        except Exception as e:
-            self.LOGGER.error("Unable to concat dataframes")
-            self.LOGGER.exception(e)
-        self.LOGGER.debug("Exit _combine_data.")
-        return primary
-
-    def read_all(
+    def read_all_parquet(
         self,
         bucket: str,
         file_list: list,
@@ -131,9 +109,9 @@ class S3Storage(BaseStorage):
         return ret
 
     def _read_from_list_object(self, keys: list) -> polars.DataFrame:
-        return self.read(keys["bucket"], keys["key"])
+        return self.read_parquet(keys["bucket"], keys["key"])
 
-    def read(
+    def read_parquet(
         self,
         bucket: str,
         key: str,
@@ -154,11 +132,16 @@ class S3Storage(BaseStorage):
             self.LOGGER.exception(e)
         return ret
 
-    def write(self, bucket: str, key: str, df: polars.DataFrame) -> None:
+    def write_parquet(
+        self,
+        bucket: str,
+        key: str,
+        df: polars.DataFrame,
+    ) -> bool:
         """Writes a parquet object to S3.
         ---
-        key: S3 key {bucket}/{key}; exclude extension.`
-        df: Polars DataFrame
+        key: S3 key {bucket}/{key}; exclude extension. \n
+        df: Polars DataFrame containing contents to write
         """
         try:
             # TODO: check key for extension, or add extension param
@@ -170,7 +153,8 @@ class S3Storage(BaseStorage):
                 compression=compression,
                 filesystem=self.file_system,
             ).write_table(data)
+            return True
         except Exception as e:
             self.LOGGER.error("Failed to write parquet file to S3.")
             self.LOGGER.exception(e)
-            raise
+            return False
