@@ -14,15 +14,25 @@ class S3Storage(BaseStorage):
         access_key: str = None,
         secret_access_key: str = None,
         region: str = None,
+        session: boto3.Session = None,
     ) -> None:
         self.access_key = os.getenv("AWS_ACCESS_KEY_ID", access_key)
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
-        self.region = os.getenv("AWS_REGION", "us-west-2")
+        self.region = os.getenv("AWS_REGION", region)
 
         super().__init__(type="aws")
 
-        self.aws_client = boto3.client("s3")
-        self.file_system = self._create_file_system()
+        if session:
+            self.aws_client = session.client("s3")
+            sts = session.client("sts")
+            caller = sts.get_caller_identity()
+            self.LOGGER.debug(caller)
+        else:
+            self.aws_client = boto3.Session(
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_access_key,
+                region_name=self.region,
+            ).client("s3")
 
     def read(
         self,
@@ -108,7 +118,10 @@ class S3Storage(BaseStorage):
                 ret = self._combine_data(ret, df)
         return ret
 
-    def _read_from_list_object(self, keys: list) -> polars.DataFrame:
+    def _read_from_list_object(
+        self,
+        keys: list,
+    ) -> polars.DataFrame:
         return self.read_parquet(keys["bucket"], keys["key"])
 
     def read_parquet(

@@ -24,7 +24,7 @@ class BaseStorage(metaclass=ABCMeta):
         if type not in STORAGE_TYPES:
             raise Exception("Invalid storage type.")
         self.type = type
-
+        self.file_system = self._create_file_system()
         self.LOGGER.debug("BaseStorage exit.")
 
     @abstractmethod
