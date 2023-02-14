@@ -24,15 +24,15 @@ class S3Storage(BaseStorage):
 
         if session:
             self.aws_client = session.client("s3")
-            sts = session.client("sts")
-            caller = sts.get_caller_identity()
-            self.LOGGER.debug(caller)
         else:
-            self.aws_client = boto3.Session(
+            session = boto3.Session(
                 aws_access_key_id=self.access_key,
                 aws_secret_access_key=self.secret_access_key,
                 region_name=self.region,
-            ).client("s3")
+            )
+            self.aws_client = session.client("s3")
+
+        self.session = session
 
     def read(
         self,
