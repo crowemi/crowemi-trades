@@ -2,9 +2,10 @@ import os
 import argparse
 import json
 from datetime import datetime, timedelta
-import polars
+from polars import DataFrame
 
 from crowemi_trades.helpers.polygon import PolygonHelper
+from crowemi_trades.storage.base_storage import BaseStorage
 from crowemi_trades.storage.s3_storage import S3Storage
 
 
@@ -15,21 +16,24 @@ def get_daily_data(
     start_date: datetime,
     end_date: datetime,
     bucket: str,
+    storage: BaseStorage,
 ):
     """A process function for getting and storing data. \n
     ---
-    ticker: the ticket symbol of the asset request. \n
-    timespan: \n
-    interval: \n
-    start_date: \n
-    end_date: \n
-    bucket: \n
+    ticker: The ticket symbol of the asset request. \n
+    timespan: The size of the time window. \n
+    interval: The size of the timespan multiplier. \n
+    start_date: The start window for data collection. \n
+    end_date: The end window for the data collection. \n
+    bucket: The bucket to store the data. \n
+    storage: The cloud storage object used for storing data.
     """
     date_range = list()
     while start_date <= end_date:
         date_range.append(start_date)
         start_date = start_date + timedelta(days=1)
 
+    failures = list()
     for date in date_range:
         ret = PolygonHelper().get_aggregates(
             ticker,
@@ -40,16 +44,18 @@ def get_daily_data(
             raw=True,
         )
         if ret.status == 200:
-            df = polars.DataFrame(data=json.loads(ret.data))
-            S3Storage().write_parquet(
+            df = DataFrame(
+                data=json.loads(ret.data),
+            )
+            storage.write_parquet(
                 bucket,
                 f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}",
                 df,
             )
-            return True
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
-            return False
+            failures.append(date)
+    return True if len(failures) == 0 else False
 
 
 if __name__ == "__main__":
@@ -71,9 +77,21 @@ if __name__ == "__main__":
         choices=["minute", "hour", "day", "week", "month", "quarter", "year"],
         required=True,
     )
-    parser.add_argument("-sd", "--start-date", required=True)
-    parser.add_argument("-ed", "--end-date", required=True)
-    parser.add_argument("-b", "--bucket", help="The S3 bucket to store prices")
+    parser.add_argument(
+        "-sd",
+        "--start-date",
+        required=True,
+    )
+    parser.add_argument(
+        "-ed",
+        "--end-date",
+        required=True,
+    )
+    parser.add_argument(
+        "-b",
+        "--bucket",
+        help="The S3 bucket to store prices",
+    )
 
     args = parser.parse_args()
 
@@ -92,4 +110,5 @@ if __name__ == "__main__":
         start_date=start_date,
         end_date=end_date,
         bucket=bucket,
+        storage=S3Storage(),
     )

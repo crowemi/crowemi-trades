@@ -92,7 +92,9 @@ class ProcessGetData(ProcessCore):
             month=int(last_modified[4:6]),
             day=int(last_modified[6:8]),
         ) + timedelta(days=1)
-        end_date = today + timedelta(days=-1)
+        end_date = datetime(
+            year=today.year, month=today.month, day=today.day
+        ) + timedelta(days=-1)
 
         if start_date < end_date:
             ret = get_daily_data(
@@ -102,6 +104,7 @@ class ProcessGetData(ProcessCore):
                 start_date,
                 end_date,
                 bucket,
+                self.storage,  # storage
             )
         if ret:
             # update manifest last modified date

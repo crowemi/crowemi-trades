@@ -9,7 +9,6 @@ class TestProcesses(unittest.TestCase):
     def test_process_get_data(self):
         ret = ProcessGetData().run(
             storage=S3Storage(
-                region="us-west-2",
                 session=boto3.Session(),
             ),
             bucket="crowemi-trades",
