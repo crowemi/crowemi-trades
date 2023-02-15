@@ -20,8 +20,6 @@ class S3Storage(BaseStorage):
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
         self.region = os.getenv("AWS_REGION", region)
 
-        super().__init__(type="aws")
-
         if session:
             self.aws_client = session.client("s3")
         else:
@@ -33,6 +31,8 @@ class S3Storage(BaseStorage):
             self.aws_client = session.client("s3")
 
         self.session = session
+
+        super().__init__(type="aws")
 
     def read(
         self,

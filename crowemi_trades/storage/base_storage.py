@@ -95,6 +95,7 @@ class BaseStorage(metaclass=ABCMeta):
             ret = fs.S3FileSystem(
                 access_key=self.access_key,
                 secret_key=self.secret_access_key,
+                session_token=self.session.get_credentials().token,
             )
         return ret
 
