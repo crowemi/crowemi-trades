@@ -16,17 +16,22 @@ class S3Storage(BaseStorage):
         region: str = None,
         session: Session = None,
     ) -> None:
-        self.access_key = os.getenv("AWS_ACCESS_KEY_ID", access_key)
-        self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
-        self.region = os.getenv("AWS_REGION", region)
-
         if session:
             self.aws_client = session.client("s3")
         else:
             session = Session(
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_access_key,
-                region_name=self.region,
+                aws_access_key_id=os.getenv(
+                    "AWS_ACCESS_KEY_ID",
+                    access_key,
+                ),
+                aws_secret_access_key=os.getenv(
+                    "AWS_SECRET_ACCESS_KEY",
+                    secret_access_key,
+                ),
+                region_name=os.getenv(
+                    "AWS_REGION",
+                    region,
+                ),
             )
             self.aws_client = session.client("s3")
 
@@ -61,13 +66,20 @@ class S3Storage(BaseStorage):
         start_date: datetime = None,
         end_date: datetime = None,
     ) -> list:
-        """A method to get a listing of objects from S3. \n
-        ---
-        bucket: \n
-        prefix: \n
-        limit: \n
-        start_date: \n
-        end_date: \n
+        """A method to get a listing of objects from S3.
+
+        Args:
+            bucket (str): The name of the S3 bucket to query.
+            prefix (str): The prefix of the objects to list.
+            limit (int, optional): The maximum number of objects to return. Defaults to None, which means no limit.
+            start_date (datetime, optional): The earliest date of the objects to list. Defaults to None, which means no filter by date.
+            end_date (datetime, optional): The latest date of the objects to list. Defaults to None, which means no filter by date.
+
+        Returns:
+            list: A list of dictionaries containing information about the objects, such as key, size, last modified date, etc.
+
+        Raises:
+            ClientError: If there is an error in communicating with the S3 service.
         """
         list_objects = list()
         next_token = None
@@ -101,10 +113,18 @@ class S3Storage(BaseStorage):
         bucket: str,
         file_list: list,
     ) -> polars.DataFrame:
-        """Reads multiple files from storage into a single dataframe.\n
-        ---
-        bucket: the S3 bucket containing the files. \n
-        file_list: the file list to read. \n
+        """Reads multiple files from storage into a single dataframe.
+
+        Args:
+            bucket (str): The name of the S3 bucket containing the files.
+            file_list (list): The list of dictionaries containing information about the files, such as key, size, etc.
+
+        Returns:
+            polars.DataFrame: A dataframe containing the data from all the files.
+
+        Raises:
+            ClientError: If there is an error in communicating with the S3 service.
+            ValueError: If the file list is empty or contains invalid files.
         """
         primary = list[polars.DataFrame()]
         file_list = list(map(lambda x: {"key": x["Key"], "bucket": bucket}, file_list))
@@ -130,11 +150,6 @@ class S3Storage(BaseStorage):
     ) -> polars.DataFrame:
         """Reads a parquet object from S3."""
         ret = None
-
-        if not self.access_key:
-            raise Exception("No AWS Access Key supplied.")
-        if not self.secret_access_key:
-            raise Exception("No AWS Secret Access Key supplied.")
 
         try:
             dataset = pq.ParquetDataset(f"{bucket}/{key}", filesystem=self.file_system)
