@@ -1,5 +1,5 @@
 import os
-import boto3
+from boto3 import Session
 from datetime import datetime
 import polars
 from concurrent.futures import ThreadPoolExecutor
@@ -14,7 +14,7 @@ class S3Storage(BaseStorage):
         access_key: str = None,
         secret_access_key: str = None,
         region: str = None,
-        session: boto3.Session = None,
+        session: Session = None,
     ) -> None:
         self.access_key = os.getenv("AWS_ACCESS_KEY_ID", access_key)
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
@@ -23,15 +23,14 @@ class S3Storage(BaseStorage):
         if session:
             self.aws_client = session.client("s3")
         else:
-            session = boto3.Session(
+            session = Session(
                 aws_access_key_id=self.access_key,
                 aws_secret_access_key=self.secret_access_key,
                 region_name=self.region,
             )
             self.aws_client = session.client("s3")
 
-        self.session = session
-
+        self.session: Session = session
         super().__init__(type="aws")
 
     def read(
@@ -151,10 +150,27 @@ class S3Storage(BaseStorage):
         key: str,
         df: polars.DataFrame,
     ) -> bool:
-        """Writes a parquet object to S3.
-        ---
-        key: S3 key {bucket}/{key}; exclude extension. \n
-        df: Polars DataFrame containing contents to write
+        """Writes a parquet object to S3 using pyarrow.
+
+        Parameters
+        ----------
+        bucket : str
+            The name of the S3 bucket where the parquet object will be stored.
+        key : str
+            The S3 key for the parquet object, excluding the extension. The extension will be added based on the compression type.
+        df : polars.DataFrame
+            The polars DataFrame containing the data to be written as a parquet object.
+
+        Returns
+        -------
+        bool
+            True if the write operation was successful, False otherwise.
+
+        Raises
+        ------
+        Exception
+            If any error occurs during the write operation.
+
         """
         try:
             # TODO: check key for extension, or add extension param
