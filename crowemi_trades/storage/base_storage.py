@@ -93,8 +93,8 @@ class BaseStorage(metaclass=ABCMeta):
         """Creates a pyarrow filesystem object."""
         if self.type == "aws":
             ret = fs.S3FileSystem(
-                access_key=self.access_key,
-                secret_key=self.secret_access_key,
+                access_key=self.session.get_credentials().access_key,
+                secret_key=self.session.get_credentials().secret_key,
                 session_token=self.session.get_credentials().token,
             )
         return ret
