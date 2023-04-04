@@ -49,6 +49,7 @@ class TestStorage(unittest.TestCase):
         obj = list()
         obj = self.stor.get_list_objects(self.bucket, "C:EURUSD/minute/5/2022/01/")
         df = self.stor.read_all_parquet(self.bucket, obj)
+        print(df.head())
         assert not df.is_empty()
 
     def test_write(self):
