@@ -8,7 +8,11 @@ from crowemi_trades.helpers.polygon import PolygonHelper
 
 class TestStorage(unittest.TestCase):
     def setUp(self) -> None:
-        self.stor = S3Storage("us-west-2")
+        self.stor = S3Storage(
+            access_key="test",
+            secret_access_key="test",
+            endpoint_override="http://localhost:4566",
+        )
         self.bucket = "crowemi-trades"
         self.key = "test_hello_world.json"
         self.content = {"hello": "world"}
@@ -58,7 +62,7 @@ class TestStorage(unittest.TestCase):
             self.key,
             bytes(json.dumps(self.content), "utf-8"),
         )
-        assert ret
+        self.assertTrue(ret)
 
     def test_read(self):
         content = self.stor.read_content(self.bucket, self.key)

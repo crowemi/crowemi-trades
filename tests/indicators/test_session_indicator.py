@@ -8,6 +8,7 @@ from crowemi_trades.indicators.session_indicator import SessionIndicator
 class TestSessionIndicator(unittest.TestCase):
     def setUp(self) -> None:
         self.stor = S3Storage()
+        self.session = SessionIndicator()
         self.bucket = "crowemi-trades"
         return super().setUp()
 
@@ -60,6 +61,11 @@ class TestSessionIndicator(unittest.TestCase):
                     len(session) == 1
                 ), f"Hour {t.hour} does not meet session length. Length {len(session)}"
                 assert "sydney" in session, f"Hour {t.hour} has no sydney session."
+
+    def test_apply_indicator(self):
+        record = {"name": "test tester", "first_name": "test", "last_name": "tester"}
+        new_record = self.session.apply_indicator(record, {"phone": "111-111-1111"})
+        self.assertIn("phone", new_record)
 
 
 if __name__ == "__main__":

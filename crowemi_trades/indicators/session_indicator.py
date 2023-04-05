@@ -24,6 +24,9 @@ class SessionIndicator(BaseIndicator):
     ) -> None:
         super().__init__()
 
+    def apply_indicator(self, record, indicator: dict) -> dict:
+        return super().apply_indicator(record, indicator)
+
     @staticmethod
     def get_session(dt: datetime) -> list:
         session = list()

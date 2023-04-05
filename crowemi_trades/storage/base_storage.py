@@ -39,25 +39,17 @@ class BaseStorage(metaclass=ABCMeta):
         contents: bytes,
     ) -> bool:
         """Writes contents to a file in cloud storage."""
-        ret: str
-        uri: str
-        if self.type == "aws":
-            uri = f"s3://{bucket}/{key}"
-        try:
-            with open(uri, "wb") as f:
-                f.write(contents)
-            return True
-        except Exception as e:
-            self.LOGGER.error(e)
-            return False
+        raise Exception("BaseStorage.write: No base implementation for write method.")
 
     @abstractmethod
     def read_parquet():
-        raise Exception("No base implementation for read_parquet method.")
+        raise Exception(
+            "BaseStorage.read_parquet: No base implementation for read_parquet method."
+        )
 
     @abstractmethod
     def read():
-        raise Exception("No base implementation for read method.")
+        raise Exception("BaseStorage.read: No base implementation for read method.")
 
     @abstractmethod
     def read_content(
