@@ -16,9 +16,9 @@ jobs:
           sudo apt-get install build-essential &&
           sudo wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
           sudo tar -xzf ta-lib-0.4.0-src.tar.gz &&
-          cd ta-lib/
-          sudo ./config
-          sudo make
+          cd ta-lib/ &&
+          sudo ./config &&
+          sudo make &&
           sudo make install
       - name: Check out code
         uses: actions/checkout@v2
