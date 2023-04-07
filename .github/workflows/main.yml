@@ -16,7 +16,7 @@ jobs:
           sudo apt-get install build-essential &&
           sudo wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
           sudo tar -xzf ta-lib-0.4.0-src.tar.gz &&
-          sudo cd ta-lib/
+          cd ta-lib/
           sudo ./config
           sudo make
           sudo make install
