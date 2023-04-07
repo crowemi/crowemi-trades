@@ -1,9 +1,11 @@
 import os
-from boto3 import Session
 from datetime import datetime
-import polars
 from concurrent.futures import ThreadPoolExecutor
+
+from boto3 import Session
+import polars
 import pyarrow.parquet as pq
+from smart_open import open
 
 from crowemi_trades.storage.base_storage import BaseStorage
 
@@ -15,9 +17,13 @@ class S3Storage(BaseStorage):
         secret_access_key: str = None,
         region: str = None,
         session: Session = None,
+        endpoint_override: str = None,
     ) -> None:
         if session:
-            self.aws_client = session.client("s3")
+            self.aws_client = session.client(
+                "s3",
+                endpoint_url=endpoint_override,
+            )
         else:
             session = Session(
                 aws_access_key_id=os.getenv(
@@ -33,7 +39,10 @@ class S3Storage(BaseStorage):
                     region,
                 ),
             )
-            self.aws_client = session.client("s3")
+            self.aws_client = session.client(
+                "s3",
+                endpoint_url=self.endpoint_override,
+            )
 
         self.session: Session = session
         super().__init__(type="aws")
@@ -56,7 +65,18 @@ class S3Storage(BaseStorage):
         key: str,
         contents: bytes,
     ):
-        return super().write(bucket, key, contents)
+        """Writes contents to a file in cloud storage."""
+        ret: str
+        uri: str
+        if self.type == "aws":
+            uri = f"s3://{bucket}/{key}"
+        try:
+            with open(uri, "wb", transport_params={"client": self.aws_client}) as f:
+                f.write(contents)
+            return True
+        except Exception as e:
+            self.LOGGER.error(e)
+            return False
 
     def get_list_objects(
         self,

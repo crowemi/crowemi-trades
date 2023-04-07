@@ -7,6 +7,7 @@ from polars import DataFrame
 from crowemi_trades.helpers.polygon import PolygonHelper
 from crowemi_trades.storage.base_storage import BaseStorage
 from crowemi_trades.storage.s3_storage import S3Storage
+from crowemi_trades.indicators.base_indicator import BaseIndicator, INDICATORS
 
 
 def get_daily_data(
@@ -43,19 +44,29 @@ def get_daily_data(
             f"{date.year}-{date.month:02}-{date.day:02}",
             raw=True,
         )
+
+        # # apply indicators -- threadpool
+        # indicators = list()
+        # for i in INDICATORS:
+        #     indicators.append(BaseIndicator.indicator_factory(i))
+
+        success_keys = list()
         if ret.status == 200:
             df = DataFrame(
                 data=json.loads(ret.data),
             )
-            storage.write_parquet(
+            key = f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}"
+            stor_ret = storage.write_parquet(
                 bucket,
-                f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}",
+                key,
                 df,
             )
+            if stor_ret:
+                success_keys.append(key)
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
             failures.append(date)
-    return True if len(failures) == 0 else False
+    return True if len(failures) == 0 else False, success_keys
 
 
 if __name__ == "__main__":

@@ -21,5 +21,7 @@ class SmmaIndicator(BaseIndicator):
         self.df = df
         self.period = period
 
+        self.calculate_sum()
+
     def calculate_sum():
         pass
