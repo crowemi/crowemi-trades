@@ -16,7 +16,6 @@ class PolygonHelper:
         if not polygon_token:
             raise Exception("No polgygon token found.")
         self._client = RESTClient(api_key=polygon_token)
-
         self.requests = 0
 
     def throttle(func):

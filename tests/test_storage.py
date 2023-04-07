@@ -1,4 +1,5 @@
 import unittest
+import os
 import json
 import polars as pl
 
@@ -9,9 +10,9 @@ from crowemi_trades.helpers.polygon import PolygonHelper
 class TestStorage(unittest.TestCase):
     def setUp(self) -> None:
         self.stor = S3Storage(
-            access_key="test",
-            secret_access_key="test",
-            endpoint_override="http://localhost:4566",
+            access_key=os.getenv("AWS_ACCESS_KEY_ID", "test"),
+            secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
+            endpoint_override=os.getenv("AWS_ACCESS_KEY_ID", "http://localhost:4566"),
         )
         self.bucket = "crowemi-trades"
         self.key = "test_hello_world.json"
