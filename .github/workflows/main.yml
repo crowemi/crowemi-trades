@@ -11,14 +11,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install TA-lib pre-reqs
+      - name: Download TA-lib pre-reqs
         run:
           sudo apt-get install build-essential &&
-          sudo wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
-          sudo tar -xzf ta-lib-0.4.0-src.tar.gz &&
+          wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
+          tar -xzf ta-lib-0.4.0-src.tar.gz &&
           cd ta-lib/ &&
-          sudo ./config &&
-          sudo make &&
+          ./configure --prefix=/usr &&
+          make &&
           sudo make install
       - name: Check out code
         uses: actions/checkout@v2
