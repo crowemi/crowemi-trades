@@ -19,28 +19,18 @@ class TestStorage(unittest.TestCase):
         return super().setUp()
 
     def test_write_parquet(self):
-        p = PolygonHelper()
-        ret = p.get_aggregates(
-            "C:EURUSD",
-            5,
-            "minute",
-            "2023-02-07",
-            "2023-02-07",
-            True,
-        )
-        df = pl.DataFrame(data=json.loads(ret.data))
+        df = pl.DataFrame(data=self.content)
         try:
             ret = self.stor.write_parquet(
                 "crowemi-trades",
                 "test_write",
                 df,
             )
-            ret = True
         except Exception as e:
             ret = False
             print(e)
 
-        assert ret
+        self.assertTrue(ret)
 
     def test_read_parquet(self):
         df = self.stor.read_parquet(

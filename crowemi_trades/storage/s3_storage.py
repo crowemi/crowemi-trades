@@ -22,7 +22,7 @@ class S3Storage(BaseStorage):
         self.access_key = os.getenv("AWS_ACCESS_KEY_ID", access_key)
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY", secret_access_key)
         self.region = os.getenv("AWS_REGION", region)
-        endpoint_override = os.getenv("AWS_ENDPOINT_OVERRIDE", endpoint_override)
+        self.endpoint_override = os.getenv("AWS_ENDPOINT_OVERRIDE", endpoint_override)
 
         if session:
             self.aws_client = session.client(
@@ -37,7 +37,7 @@ class S3Storage(BaseStorage):
             )
             self.aws_client = session.client(
                 "s3",
-                endpoint_url=endpoint_override,
+                endpoint_url=self.endpoint_override,
             )
 
         self.session: Session = session

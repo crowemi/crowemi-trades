@@ -88,6 +88,7 @@ class BaseStorage(metaclass=ABCMeta):
                 access_key=self.session.get_credentials().access_key,
                 secret_key=self.session.get_credentials().secret_key,
                 session_token=self.session.get_credentials().token,
+                endpoint_override=self.endpoint_override,
             )
         return ret
 

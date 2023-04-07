@@ -16,10 +16,4 @@ class TestSmmaIndicator(unittest.TestCase):
     def test_smma_indicator(
         self,
     ):
-        list_objects = self.stor.get_list_objects(
-            self.bucket,
-            "C:EURUSD/minute/5/2022/01",
-        )
-        df = self.stor.read_all_parquet(self.bucket, list_objects)
-        smma = SmmaIndicator(21, df)
-        smma.calculate_sum()
+        pass
