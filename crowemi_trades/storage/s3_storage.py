@@ -5,7 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 from boto3 import Session
 import polars
 import pyarrow.parquet as pq
+from pyarrow import fs
 from smart_open import open
+
 
 from crowemi_trades.storage.base_storage import BaseStorage
 
@@ -19,11 +21,10 @@ class S3Storage(BaseStorage):
         session: Session = None,
         endpoint_override: str = None,
     ) -> None:
-        self.endpoint_override = endpoint_override
         if session:
             self.aws_client = session.client(
                 "s3",
-                endpoint_url=self.endpoint_override,
+                endpoint_url=endpoint_override,
             )
         else:
             session = Session(
@@ -42,11 +43,21 @@ class S3Storage(BaseStorage):
             )
             self.aws_client = session.client(
                 "s3",
-                endpoint_url=self.endpoint_override,
+                endpoint_url=endpoint_override,
             )
 
         self.session: Session = session
+        self.file_system = self._create_file_system(endpoint_override)
         super().__init__(type="aws")
+
+    def _create_file_system(self, endpoint_override: str = None):
+        """Creates a pyarrow filesystem object."""
+        return fs.S3FileSystem(
+            access_key=self.session.get_credentials().access_key,
+            secret_key=self.session.get_credentials().secret_key,
+            session_token=self.session.get_credentials().token,
+            endpoint_override=endpoint_override,
+        )
 
     def read(
         self,
@@ -79,9 +90,7 @@ class S3Storage(BaseStorage):
     ):
         """Writes contents to a file in cloud storage."""
         ret: str
-        uri: str
-        if self.type == "aws":
-            uri = f"s3://{bucket}/{key}"
+        uri = f"s3://{bucket}/{key}"
         try:
             with open(uri, "wb", transport_params={"client": self.aws_client}) as f:
                 f.write(contents)

@@ -3,12 +3,9 @@ import logging
 
 from polars import DataFrame, Series, concat
 from pyarrow import Table, Schema
-from pyarrow import fs
 
 from abc import ABCMeta, abstractmethod
-import boto3
 
-from smart_open import open
 from crowemi_trades.helpers.logging import *
 
 STORAGE_TYPES = [
@@ -24,7 +21,7 @@ class BaseStorage(metaclass=ABCMeta):
         if type not in STORAGE_TYPES:
             raise Exception("Invalid storage type.")
         self.type = type
-        self.file_system = self._create_file_system()
+
         self.LOGGER.debug("BaseStorage exit.")
 
     @abstractmethod
@@ -69,17 +66,6 @@ class BaseStorage(metaclass=ABCMeta):
             self.LOGGER.error("Failed to create parquet dataframe.")
             self.LOGGER.exception(e)
             raise e
-
-    def _create_file_system(self):
-        """Creates a pyarrow filesystem object."""
-        if self.type == "aws":
-            ret = fs.S3FileSystem(
-                access_key=self.session.get_credentials().access_key,
-                secret_key=self.session.get_credentials().secret_key,
-                session_token=self.session.get_credentials().token,
-                endpoint_override=self.endpoint_override,
-            )
-        return ret
 
     def _combine_data(
         self,
