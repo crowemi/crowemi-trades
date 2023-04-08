@@ -48,6 +48,8 @@ jobs:
           echo "Startup complete"
 
       - name: Run tests
+        env:
+          POLYGON_KEY: ${{ secrets.POLYGON_KEY }}
         run: |
           python -m unittest &&
           coverage run -m unittest discover
