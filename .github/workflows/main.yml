@@ -49,4 +49,5 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m unittest
+          python -m unittest &&
+          coverage run -m unittest discover
