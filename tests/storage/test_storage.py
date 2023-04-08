@@ -2,19 +2,27 @@ import unittest
 import os
 import json
 
+import polars as pl
+
 from crowemi_trades.storage.s3_storage import S3Storage
 
 
-class TestStorage(unittest.TestCase):
+class TestS3Storage(unittest.TestCase):
     def setUp(self) -> None:
         self.stor = S3Storage(
             access_key=os.getenv("AWS_ACCESS_KEY_ID", "test"),
             secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
-            endpoint_override=os.getenv("AWS_ACCESS_KEY_ID", "http://localhost:4566"),
+            endpoint_override="http://localhost:4566",
+            region="us-east-1",
         )
         self.bucket = "crowemi-trades"
         self.key = "test_hello_world.json"
         self.content = {"hello": "world"}
+
+        if "crowemi-trades" not in self.stor.get_buckets():
+            print("creating bucket crowemi-trades...")
+            self.stor.create_bucket("crowemi-trades")
+
         return super().setUp()
 
     def test_write_parquet(self):
@@ -32,18 +40,12 @@ class TestStorage(unittest.TestCase):
         self.assertTrue(ret)
 
     def test_read_parquet(self):
+        self.test_write_parquet()
         df = self.stor.read_parquet(
             self.bucket,
-            "C:EURUSD/minute/5/2022/01/20220101.parquet.gzip",
+            "test_write.parquet.gzip",
         )
-        assert not df.is_empty()
-
-    def test_read_all_parquet(self):
-        obj = list()
-        obj = self.stor.get_list_objects(self.bucket, "C:EURUSD/minute/5/2022/01/")
-        df = self.stor.read_all_parquet(self.bucket, obj)
-        print(df.head())
-        assert not df.is_empty()
+        self.assertFalse(df.is_empty())
 
     def test_write(self):
         ret = self.stor.write(
@@ -55,4 +57,12 @@ class TestStorage(unittest.TestCase):
 
     def test_read(self):
         content = self.stor.read_content(self.bucket, self.key)
-        assert len(content) == len(json.dumps(self.content))
+        self.assertTrue(len(content), len(json.dumps(self.content)))
+
+
+class TestMongoDBStorage(unittest.TestCase):
+    pass
+
+
+if __name__ == "__main__":
+    unittest.main()

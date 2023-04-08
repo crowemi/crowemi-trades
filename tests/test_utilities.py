@@ -27,3 +27,7 @@ class TestUtilities(unittest.TestCase):
             storage=self.stor,
         )
         self.assertTrue(ret)
+
+
+if __name__ == "__main__":
+    unittest.main()

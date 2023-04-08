@@ -57,18 +57,7 @@ class BaseStorage(metaclass=ABCMeta):
         bucket: str,
         key: str,
     ) -> str:
-        """Reads the contents of a file from cloud storage.
-        ---
-        bucket: \n
-        key:
-        """
-        ret: str
-        uri: str
-        if self.type == "aws":
-            uri = f"s3://{bucket}/{key}"
-        with open(uri) as f:
-            ret = f.read()
-        return ret
+        raise NotImplementedError()
 
     def create_data_table(self, df: DataFrame) -> tuple[Table, Schema]:
         """Creates a pyarrow Table object from a polars dataframe."""

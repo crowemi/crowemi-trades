@@ -20,3 +20,7 @@ class TestPolygon(unittest.TestCase):
             raw=True,
         )
         self.assertEqual(d.status, 200)
+
+
+if __name__ == "__main__":
+    unittest.main()

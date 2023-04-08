@@ -46,3 +46,7 @@ jobs:
           echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
           localstack wait -t 30                     # to become ready before timing out 
           echo "Startup complete"
+
+      - name: Run tests
+        run: |
+          python -m unittest

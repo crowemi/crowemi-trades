@@ -19,10 +19,11 @@ class S3Storage(BaseStorage):
         session: Session = None,
         endpoint_override: str = None,
     ) -> None:
+        self.endpoint_override = endpoint_override
         if session:
             self.aws_client = session.client(
                 "s3",
-                endpoint_url=endpoint_override,
+                endpoint_url=self.endpoint_override,
             )
         else:
             session = Session(
@@ -57,7 +58,18 @@ class S3Storage(BaseStorage):
         bucket: str,
         key: str,
     ) -> str:
-        return super().read_content(bucket, key)
+        """Reads the contents of a file from cloud storage.
+        ---
+        bucket: \n
+        key:
+        """
+        ret: str
+        uri: str
+        if self.type == "aws":
+            uri = f"s3://{bucket}/{key}"
+        with open(uri, transport_params={"client": self.aws_client}) as f:
+            ret = f.read()
+        return ret
 
     def write(
         self,
@@ -222,3 +234,11 @@ class S3Storage(BaseStorage):
             self.LOGGER.error("Failed to write parquet file to S3.")
             self.LOGGER.exception(e)
             return False
+
+    def create_bucket(self, bucket: str):
+        return self.aws_client.create_bucket(Bucket=bucket)
+
+    def get_buckets(self) -> list:
+        return list(
+            map(lambda x: x.get("Name"), self.aws_client.list_buckets()["Buckets"])
+        )
