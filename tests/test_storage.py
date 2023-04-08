@@ -1,10 +1,8 @@
 import unittest
 import os
 import json
-import polars as pl
 
 from crowemi_trades.storage.s3_storage import S3Storage
-from crowemi_trades.helpers.polygon import PolygonHelper
 
 
 class TestStorage(unittest.TestCase):
