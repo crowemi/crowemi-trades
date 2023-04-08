@@ -21,6 +21,7 @@ class S3Storage(BaseStorage):
         session: Session = None,
         endpoint_override: str = None,
     ) -> None:
+        # TODO: validate sesssion and inputs
         if session:
             self.aws_client = session.client(
                 "s3",

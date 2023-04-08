@@ -56,6 +56,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertTrue(ret)
 
     def test_read(self):
+        self.test_write()
         content = self.stor.read_content(self.bucket, self.key)
         self.assertTrue(len(content), len(json.dumps(self.content)))
 
