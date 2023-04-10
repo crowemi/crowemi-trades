@@ -1,5 +1,7 @@
 import os
+import json
 import time
+from datetime import datetime
 import functools
 
 from polygon import RESTClient
@@ -42,7 +44,7 @@ class PolygonHelper:
         start_date: str,
         end_date: str,
         raw: bool,
-    ):
+    ) -> list:
         """Polygon get_aggs wrapper
         ---
         "c": close
@@ -54,7 +56,7 @@ class PolygonHelper:
         "v": trading volume,
         "vw": volume weighted average price
         """
-        return self._client.get_aggs(
+        ret = self._client.get_aggs(
             ticker,
             interval,
             timespan,
@@ -62,3 +64,14 @@ class PolygonHelper:
             end_date,
             raw=raw,
         )
+        data = json.loads(ret.data)
+        data["results"] = self.apply_timestamp(data.get("results"))
+        return {"status": ret.status, "data": data}
+
+    def apply_timestamp(self, records: list) -> list:
+        def append_timestamp(record: list):
+            assert record.get("t", None), "Expecting 't' element, received None"
+            record["ts"] = datetime.utcfromtimestamp(record["t"] / 1000).isoformat()
+
+        list(map(lambda x: append_timestamp(x), records))
+        return records

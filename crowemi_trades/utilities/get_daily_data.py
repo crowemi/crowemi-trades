@@ -51,9 +51,9 @@ def get_daily_data(
         #     indicators.append(BaseIndicator.indicator_factory(i))
 
         success_keys = list()
-        if ret.status == 200:
+        if ret.get("status", None) == 200:
             df = DataFrame(
-                data=json.loads(ret.data),
+                data=json.loads(ret.get("data", None)),
             )
             key = f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}"
             stor_ret = storage.write_parquet(

@@ -24,7 +24,11 @@ class SessionIndicator(BaseIndicator):
     ) -> None:
         super().__init__()
 
-    def apply_indicator(self, record, indicator: dict) -> dict:
+    def apply_indicator(self, record) -> dict:
+        assert record.get(
+            "ts", None
+        ), "Expecting timestamp (ts) on record. None supplied."
+        indicator = self.get_session(record.get("ts"))
         return super().apply_indicator(record, indicator)
 
     @staticmethod
