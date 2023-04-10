@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 import unittest
 
@@ -7,7 +8,12 @@ from crowemi_trades.indicators.session_indicator import SessionIndicator
 
 class TestSessionIndicator(unittest.TestCase):
     def setUp(self) -> None:
-        self.stor = S3Storage()
+        self.stor = S3Storage(
+            access_key=os.getenv("AWS_ACCESS_KEY_ID", "test"),
+            secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
+            endpoint_override="http://localhost:4566",
+            region="us-east-1",
+        )
         self.session = SessionIndicator()
         self.bucket = "crowemi-trades"
         return super().setUp()
