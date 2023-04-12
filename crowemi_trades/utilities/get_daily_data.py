@@ -7,7 +7,8 @@ from polars import DataFrame
 from crowemi_trades.helpers.polygon import PolygonHelper
 from crowemi_trades.storage.base_storage import BaseStorage
 from crowemi_trades.storage.s3_storage import S3Storage
-from crowemi_trades.indicators.base_indicator import BaseIndicator, INDICATORS
+from crowemi_trades.indicators.base_indicator import BaseIndicator
+from crowemi_trades.indicators.enum import INDICATORS
 
 
 def get_daily_data(
@@ -45,15 +46,17 @@ def get_daily_data(
             raw=True,
         )
 
-        # # apply indicators -- threadpool
-        # indicators = list()
-        # for i in INDICATORS:
-        #     indicators.append(BaseIndicator.indicator_factory(i))
+        # apply indicators -- threadpool
+        indicators = list()
+        for i in INDICATORS:
+            current_indicator = BaseIndicator.indicator_factory(i)
+            results = ret.get("data", None).get("results", None)
+            list(map(lambda x: current_indicator.apply_indicator(x), results))
 
         success_keys = list()
-        if ret.status == 200:
+        if ret.get("status", None) == 200:
             df = DataFrame(
-                data=json.loads(ret.data),
+                data=ret.get("data", None),
             )
             key = f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}"
             stor_ret = storage.write_parquet(

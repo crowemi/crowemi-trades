@@ -3,11 +3,6 @@ from abc import ABCMeta, abstractmethod
 from crowemi_trades.helpers.logging import create_logger
 
 
-INDICATORS = [
-    "SessionIndicator",
-]
-
-
 class BaseIndicator(metaclass=ABCMeta):
     def __init__(self) -> None:
         self.LOGGER = create_logger(__name__)
@@ -25,5 +20,4 @@ class BaseIndicator(metaclass=ABCMeta):
 
     @staticmethod
     def indicator_factory(indicator, *args, **kwargs) -> object:
-        if indicator in INDICATORS:
-            return indicator(*args, **kwargs)
+        return indicator(*args, **kwargs)
