@@ -69,9 +69,11 @@ class TestSessionIndicator(unittest.TestCase):
                 assert "sydney" in session, f"Hour {t.hour} has no sydney session."
 
     def test_apply_indicator(self):
-        record = {"name": "test tester", "first_name": "test", "last_name": "tester"}
-        new_record = self.session.apply_indicator(record, {"phone": "111-111-1111"})
-        self.assertIn("phone", new_record)
+        record = {
+            "ts": datetime(2023, 1, 2, 23, 50).isoformat(),
+        }
+        new_record = self.session.apply_indicator(record)
+        self.assertIn("sydney", new_record["i_session"])
 
 
 if __name__ == "__main__":

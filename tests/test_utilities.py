@@ -26,7 +26,7 @@ class TestUtilities(unittest.TestCase):
             bucket="crowemi-trades",
             storage=self.stor,
         )
-        self.assertTrue(ret)
+        self.assertEqual(ret, True)
 
 
 if __name__ == "__main__":

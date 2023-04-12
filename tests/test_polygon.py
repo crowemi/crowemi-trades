@@ -23,10 +23,10 @@ class TestPolygon(unittest.TestCase):
         self.assertEqual(d.get("status"), 200)
 
     def test_apply_timestamp(self):
-        # 2023-01-02 23:55:00, 2023-01-02 23:50:00
+        # 2023-01-02T23:55:00, 2023-01-02 23:50:00
         ret = self.client.apply_timestamp([{"t": 1672703700000}, {"t": 1672703400000}])
-        self.assertEqual(ret[0]["ts"], datetime(2023, 1, 2, 23, 55))
-        self.assertEqual(ret[1]["ts"], datetime(2023, 1, 2, 23, 50))
+        self.assertEqual(ret[0]["ts"], "2023-01-02T23:55:00")
+        self.assertEqual(ret[1]["ts"], "2023-01-02T23:50:00")
 
 
 if __name__ == "__main__":
