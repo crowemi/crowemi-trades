@@ -1,4 +1,4 @@
-name: CI
+name: crowemi-trades
 on:
   push:
     branches: ["*"]

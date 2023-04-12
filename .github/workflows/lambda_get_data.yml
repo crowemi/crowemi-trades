@@ -1,10 +1,9 @@
-name: CI
+name: crowemi-trades-lambda-get-data
 on:
   push:
     branches:
       - main
-    paths:
-      - processes/process_get_data/
+
   workflow_dispatch:
 jobs:
   build:
@@ -20,7 +19,9 @@ jobs:
           python-version: "3.9"
 
       - name: Install Deploy Dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r lambda/get_data/requirements.txt
+          pip install -e .
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
