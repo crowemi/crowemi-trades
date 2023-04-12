@@ -1,2 +1,1 @@
 boto3==1.26.59
-git+https://github.com/crowemi/crowemi-trades.git@0.1.14
