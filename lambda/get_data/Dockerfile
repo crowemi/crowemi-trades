@@ -9,6 +9,10 @@ COPY requirements.txt ${LAMBDA_TASK_ROOT}
 
 # Install dependencies
 RUN python -m pip install --upgrade pip
-RUN pip install poetry -r requirements.txt
+RUN pip install -r requirements.txt
+
+WORKDIR /
+
+RUN pip install pyproject.toml
 
 CMD [ "get_data.handler" ]
