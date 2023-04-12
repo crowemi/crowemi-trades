@@ -40,6 +40,7 @@ jobs:
           ECR_REPOSITORY: crowemi-trades-lambda-get-data
           IMAGE_TAG: latest
         run: |
+          cd lambda/get_data/
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
