@@ -47,11 +47,13 @@ def get_daily_data(
         )
 
         # apply indicators -- threadpool
+        # we should be able to process multiple datasets against multiple indicators
         indicators = list()
         for i in INDICATORS:
-            current_indicator = BaseIndicator.indicator_factory(i)
+            current_indicator = BaseIndicator.indicator_factory(INDICATORS[i])
             results = ret.get("data", None).get("results", None)
-            list(map(lambda x: current_indicator.apply_indicator(x), results))
+            # TODO: modify this to operate on entire dataset
+            current_indicator.run(results)
 
         success_keys = list()
         if ret.get("status", None) == 200:
