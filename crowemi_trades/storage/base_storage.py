@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import datetime
 
 from polars import DataFrame, Series, concat
 from pyarrow import Table, Schema
@@ -25,8 +26,9 @@ class BaseStorage(metaclass=ABCMeta):
         self.LOGGER.debug("BaseStorage exit.")
 
     @abstractmethod
-    def write_parquet():
-        raise Exception("No base implementation for write_parquet method.")
+    def get_data(self, start_date: datetime, end_date: datetime) -> DataFrame:
+        """Gets historical data from storage."""
+        raise NotImplementedError("BaseStorage.get_historical_data: No base implementation for get_data method.")
 
     @abstractmethod
     def write(
@@ -39,23 +41,10 @@ class BaseStorage(metaclass=ABCMeta):
         raise Exception("BaseStorage.write: No base implementation for write method.")
 
     @abstractmethod
-    def read_parquet():
-        raise Exception(
-            "BaseStorage.read_parquet: No base implementation for read_parquet method."
-        )
-
-    @abstractmethod
     def read():
         raise Exception("BaseStorage.read: No base implementation for read method.")
 
-    @abstractmethod
-    def read_content(
-        self,
-        bucket: str,
-        key: str,
-    ) -> str:
-        raise NotImplementedError()
-
+    # FIXME: move to S3 storage class
     def create_data_table(self, df: DataFrame) -> tuple[Table, Schema]:
         """Creates a pyarrow Table object from a polars dataframe."""
         try:

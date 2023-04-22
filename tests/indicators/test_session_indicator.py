@@ -1,6 +1,6 @@
+import unittest
 import os
 from datetime import datetime
-import unittest
 
 from crowemi_trades.storage.s3_storage import S3Storage
 from crowemi_trades.indicators.session_indicator import SessionIndicator
@@ -17,6 +17,10 @@ class TestSessionIndicator(unittest.TestCase):
         self.session = SessionIndicator()
         self.bucket = "crowemi-trades"
         return super().setUp()
+
+    def test_run(self):
+        # TODO: create test for run method
+        pass
 
     def test_session(self):
         today = datetime.now()

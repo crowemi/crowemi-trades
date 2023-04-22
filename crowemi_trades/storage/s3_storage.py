@@ -20,6 +20,7 @@ class S3Storage(BaseStorage):
         region: str = None,
         session: Session = None,
         endpoint_override: str = None,
+        bucket: str = None
     ) -> None:
         # TODO: validate sesssion and inputs
         if session:
@@ -49,6 +50,7 @@ class S3Storage(BaseStorage):
 
         self.session: Session = session
         self.file_system = self._create_file_system(endpoint_override)
+        self.bucket = bucket
         super().__init__(type="aws")
 
     def _create_file_system(self, endpoint_override: str = None):
@@ -252,3 +254,18 @@ class S3Storage(BaseStorage):
         return list(
             map(lambda x: x.get("Name"), self.aws_client.list_buckets()["Buckets"])
         )
+
+    # TODO: write unittest
+    def generage_key(self, ticker: str, interval: str, timespan: str) -> str:
+        return f"{self.bucket}/{self.generate_prefix(ticker, interval, timespan)}"
+
+    # TODO: write unittest
+    def generate_prefix(self, ticker: str, interval: str, timespan: str) -> str:
+        """Generates a prefix for the S3 object."""
+        return f"{ticker}/{interval}/{timespan}/"
+
+    # TODO: write unittest
+    # NOTE: perhaps this can be grouped with read method(s)
+    def get_data(self, start_date: datetime, end_date: datetime, ticker: str, interval: str, timespan: str,) -> polars.DataFrame:
+        previous_files = self.get_list_objects(bucket=self.bucket, prefix=self.generate_prefix(ticker, interval, timespan), start_date=start_date, end_date=end_date)
+        return self.read_all_parquet(self.bucket, previous_files)

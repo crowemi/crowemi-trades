@@ -1,4 +1,5 @@
 from datetime import datetime
+from polars import DataFrame
 
 from crowemi_trades.indicators.base_indicator import BaseIndicator
 
@@ -24,8 +25,8 @@ class SessionIndicator(BaseIndicator):
     ) -> None:
         super().__init__()
 
-    def run(self, records) -> dict:
-        return list(map(lambda x: self.apply_indicator(x), records))
+    def run(self, records: DataFrame, **kwargs) -> dict:
+        return list(map(lambda x: self.apply_indicator(x), records.rows))
 
     def apply_indicator(self, record) -> dict:
         assert record.get(

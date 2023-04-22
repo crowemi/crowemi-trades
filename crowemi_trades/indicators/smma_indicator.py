@@ -17,6 +17,7 @@ class SmmaIndicator(BaseIndicator):
     ---
     The first SMMA period is calculated using a simple average over the period
     """
+    DEFAULT_PERIODS = [20, 50, 200]
 
     def __init__(self) -> None:
         """Instantiate the SMMA Indicator."""
@@ -24,21 +25,22 @@ class SmmaIndicator(BaseIndicator):
 
     def run(self, dataset: pl.DataFrame, **kwargs) -> pl.DataFrame:
         period = kwargs.get('period', None)
-        assert period, f"smma_indicator.process: Expecting period to be provided. None provided."
+        periods = [period] if period else self.DEFAULT_PERIODS
 
-        # TODO: attempt to read previous records for calculation
-        # generate the period sum
-        smma = self.generate_period_sum(dataset, period)
+        for period in periods:
+            # generate the period sum
+            smma = self.generate_period_sum(dataset, period)
 
-        # check if the current dataset needs a start smma
-        if not self.has_start_smma(dataset, period):
-            # need to calculate first smma using period average
-            # need to cast the row_number Int64
-            start_smma = self.generate_period_average(smma, period).with_columns(pl.col('row_number').cast(pl.Int64))
-            smma = smma.join(start_smma, on="row_number", how="left")
+            # check if the current dataset needs a start smma
+            if not self.has_start_smma(dataset, period):
+                # need to calculate first smma using period average
+                # need to cast the row_number Int64
+                start_smma = self.generate_period_average(smma, period).with_columns(pl.col('row_number').cast(pl.Int64))
+                smma = smma.join(start_smma, on="row_number", how="left")
 
-        smma = self.calculate(smma, period)
-        return dataset.join(smma, left_on="ts", right_on="key", how="left")
+            smma = self.calculate(smma, period)
+            dataset = dataset.join(smma, left_on="ts", right_on="key", how="left")
+        return dataset
 
     def apply_indicator(self, record: dict, indicator: dict) -> dict:
         return super().apply_indicator(record, indicator)

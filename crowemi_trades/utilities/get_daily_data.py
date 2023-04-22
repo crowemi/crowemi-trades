@@ -1,12 +1,11 @@
 import os
 import argparse
-import json
 from datetime import datetime, timedelta
 from polars import DataFrame
 
 from crowemi_trades.helpers.polygon import PolygonHelper
 from crowemi_trades.storage.base_storage import BaseStorage
-from crowemi_trades.storage.s3_storage import S3Storage
+from crowemi_trades.storage.s3_storage import S3Storage # FIXME: we shouldn't need this ref
 from crowemi_trades.indicators.base_indicator import BaseIndicator
 from crowemi_trades.indicators.enum import INDICATORS
 
@@ -17,7 +16,7 @@ def get_daily_data(
     interval: int,
     start_date: datetime,
     end_date: datetime,
-    bucket: str,
+    bucket: str, # FIXME: remove this, this should be set in the storage object
     storage: BaseStorage,
 ):
     """A process function for getting and storing data. \n
@@ -46,17 +45,21 @@ def get_daily_data(
             raw=True,
         )
 
+        # TODO: implement historical data for indicators
+        historical_data = storage.get_data(datetime(2023, 3, 1), datetime(2023, 4, 18))
+        list(map(lambda x: x.update({"current": 0}), historical_data))
+
         # apply indicators -- threadpool
         # we should be able to process multiple datasets against multiple indicators
-        indicators = list()
+        results = ret.get("data", None).get("results", None)
+        list(map(lambda x: x.update({"current": 1}), results))
         for i in INDICATORS:
             current_indicator = BaseIndicator.indicator_factory(INDICATORS[i])
-            results = ret.get("data", None).get("results", None)
-            # TODO: modify this to operate on entire dataset
             current_indicator.run(results)
 
         success_keys = list()
         if ret.get("status", None) == 200:
+            # FIXME: this should be set in the storage object
             df = DataFrame(
                 data=ret.get("data", None),
             )
@@ -71,6 +74,7 @@ def get_daily_data(
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
             failures.append(date)
+
     return True if len(failures) == 0 else False, success_keys
 
 
