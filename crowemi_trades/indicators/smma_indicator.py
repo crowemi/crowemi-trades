@@ -17,6 +17,7 @@ class SmmaIndicator(BaseIndicator):
     ---
     The first SMMA period is calculated using a simple average over the period
     """
+
     DEFAULT_PERIODS = [20, 50, 200]
 
     def __init__(self) -> None:
@@ -24,22 +25,23 @@ class SmmaIndicator(BaseIndicator):
         return super().__init__()
 
     def run(self, dataset: pl.DataFrame, **kwargs) -> pl.DataFrame:
-        period = kwargs.get('period', None)
+        key = kwargs.get("key", None)
+        # Price - is the source (Close or other) price of any period participating in the calculation.
+        price = kwargs.get("price", "close")
+        period = kwargs.get("period", None)
         periods = [period] if period else self.DEFAULT_PERIODS
+
+        # duplicate check, for now raise error
+        if self.duplicate_check(dataset):
+            raise ValueError("Duplicate rows found in dataset")
 
         for period in periods:
             # generate the period sum
-            smma = self.generate_period_sum(dataset, period)
-
-            # check if the current dataset needs a start smma
-            if not self.has_start_smma(dataset, period):
-                # need to calculate first smma using period average
-                # need to cast the row_number Int64
-                start_smma = self.generate_period_average(smma, period).with_columns(pl.col('row_number').cast(pl.Int64))
-                smma = smma.join(start_smma, on="row_number", how="left")
-
+            key = BaseIndicator.default_key(dataset, key)
+            smma = self.generate_period_sum(dataset, period, key=key, price=price)
             smma = self.calculate(smma, period)
-            dataset = dataset.join(smma, left_on="ts", right_on="key", how="left")
+            if not smma.is_empty():
+                dataset = dataset.join(smma, left_on=key, right_on="key", how="left")
         return dataset
 
     def apply_indicator(self, record: dict, indicator: dict) -> dict:
@@ -49,47 +51,41 @@ class SmmaIndicator(BaseIndicator):
         super().graph()
 
     @staticmethod
-    def calculate(dataset: pl.DataFrame, period: int,) -> pl.DataFrame:
+    def calculate(
+        dataset: pl.DataFrame,
+        period: int,
+    ) -> pl.DataFrame:
         ret = list()
         dataset = dataset.filter(pl.col("row_number") >= period)
         for i, r in enumerate(dataset.rows()):
-            # first element sets SMMAi-1
+            # The first SMMA period is calculated using a simple average over the period
             if i == 0:
-                previous_smma = r[4]
+                previous_smma = r[3] / period
                 continue
             SMMAi = (r[3] - previous_smma) / period
-            ret.append({ "key": r[1], f"i_smma_{period}": SMMAi})
+            ret.append({"key": r[1], f"i_smma_{period}": SMMAi})
             previous_smma = SMMAi
         return pl.DataFrame(ret)
 
     @staticmethod
-    def has_start_smma(dataset: pl.DataFrame, period:int) -> bool:
-        """ This method checks if the starting SMMMA (SMMAi-1) is present. """
-        # ts (timestamp) must be included in the dataset
-        assert "ts" in dataset.columns, f"smma_indicator.has_start_smma: Expecting ts in dataset. None provided."
-        row = dataset.sort(pl.col("ts")).row(index=period, named=True)._asdict()
-        exists = row.get(f"i_smma_{period}", None)
-        return True if exists else False
-
-    @staticmethod
-    def generate_period_sum(dataset: pl.DataFrame, period: int, **kwargs) -> pl.DataFrame:
+    def generate_period_sum(
+        dataset: pl.DataFrame,
+        period: int,
+        **kwargs,
+    ) -> pl.DataFrame:
         """
         This method takes a dataset and generates a summation over the period.
         """
+        # NOTE: this should be a more generic method, not just for SMMA indicator
         try:
             # validate data elements exist in dataset
-            key = kwargs.get('key', None)
-            value = kwargs.get('value', None)
+            # defaults to default_key
+            key = kwargs.get("key", BaseIndicator.default_key(dataset, None))
+            # defaults to close (NOTE: not too hott on default to close here)
+            value = kwargs.get("price", "close")
 
-            if not key and not value:
-                # defaults to key=ts (timestamp), value=c (close price)
-                key = 'ts'
-                value = 'c'
-            else:
-                assert key, f"smma_indicator.generate_period_sum: No key provided {key}"
-                assert value, f"smma_indicator.generate_period_sum: No value provided {value}"
-
-            return duckdb.sql(f"""
+            return duckdb.sql(
+                f"""
                 SELECT
                     ROW_NUMBER() OVER(ORDER BY {key}) AS row_number,
                     {key} AS key,
@@ -97,24 +93,9 @@ class SmmaIndicator(BaseIndicator):
                     SUM({value}) OVER(ORDER BY {key} ROWS {period} PRECEDING) AS sum
                 FROM dataset
                 ORDER BY {key}
-            """).pl()
+            """
+            ).pl()
         except Exception as e:
             # TODO: add logging
             print(e)
-
-    @staticmethod
-    def generate_period_average(dataset: pl.DataFrame, period: int) -> pl.DataFrame:
-        """
-        Generates the first previous period SMMA (SMMAi-1).
-        """
-        try:
-            return duckdb.sql(f"""
-                SELECT
-                    {period} AS row_number,
-                    AVG(value) AS avg
-                FROM dataset
-                WHERE row_number <= {period}
-            """).pl()
-        except Exception as e:
-            #TODO: add logging
-            print(e)
+            raise e

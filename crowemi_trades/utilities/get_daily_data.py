@@ -2,10 +2,15 @@ import os
 import argparse
 from datetime import datetime, timedelta
 from polars import DataFrame
+import polars as pl
 
 from crowemi_trades.helpers.polygon import PolygonHelper
 from crowemi_trades.storage.base_storage import BaseStorage
-from crowemi_trades.storage.s3_storage import S3Storage # FIXME: we shouldn't need this ref
+
+# FIXME: we shouldn't need this ref
+from crowemi_trades.storage.s3_storage import (
+    S3Storage,
+)
 from crowemi_trades.indicators.base_indicator import BaseIndicator
 from crowemi_trades.indicators.enum import INDICATORS
 
@@ -16,7 +21,6 @@ def get_daily_data(
     interval: int,
     start_date: datetime,
     end_date: datetime,
-    bucket: str, # FIXME: remove this, this should be set in the storage object
     storage: BaseStorage,
 ):
     """A process function for getting and storing data. \n
@@ -42,40 +46,54 @@ def get_daily_data(
             timespan,
             f"{date.year}-{date.month:02}-{date.day:02}",
             f"{date.year}-{date.month:02}-{date.day:02}",
-            raw=True,
+            raw=False,
         )
 
-        # TODO: implement historical data for indicators
-        historical_data = storage.get_data(datetime(2023, 3, 1), datetime(2023, 4, 18))
-        list(map(lambda x: x.update({"current": 0}), historical_data))
+        start_date = date - timedelta(
+            days=3
+        )  # NOTE: what if we need more than 30 days? this needs to be dynamic based on indicator
+        end_date = date - timedelta(days=1)
+        # TODO: this needs to return `results`
+        historical_data = storage.read(
+            ticker,
+            interval,
+            timespan,
+            start_date,
+            end_date,
+            True,
+        )
+        current_data = DataFrame(ret.get("data", None))
+        current_data = current_data.with_columns(pl.lit(1).alias("current"))
 
-        # apply indicators -- threadpool
-        # we should be able to process multiple datasets against multiple indicators
-        results = ret.get("data", None).get("results", None)
-        list(map(lambda x: x.update({"current": 1}), results))
+        if historical_data:
+            historical_data = historical_data.with_columns(pl.lit(0).alias("current"))
+            current_data = BaseStorage.combine_data(current_data, historical_data)
+
         for i in INDICATORS:
             current_indicator = BaseIndicator.indicator_factory(INDICATORS[i])
-            current_indicator.run(results)
+            current_data = current_indicator.run(
+                current_data,
+            )
 
-        success_keys = list()
+        current_data = current_data.filter(pl.col("current") == 1)
+        current_data = current_data.drop("current")
+
         if ret.get("status", None) == 200:
-            # FIXME: this should be set in the storage object
-            df = DataFrame(
-                data=ret.get("data", None),
-            )
-            key = f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}"
-            stor_ret = storage.write_parquet(
-                bucket,
-                key,
-                df,
-            )
-            if stor_ret:
-                success_keys.append(key)
+            if not storage.write(
+                ticker=ticker,
+                timespan=timespan,
+                interval=interval,
+                date=date,
+                content=current_data,
+            ):
+                # TODO: log wrror
+                print(f"Failed write {date.year}-{date.month:02}-{date.day:02}")
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
             failures.append(date)
 
-    return True if len(failures) == 0 else False, success_keys
+    # TODO: determine how we handle errors?
+    return True
 
 
 if __name__ == "__main__":
@@ -129,6 +147,5 @@ if __name__ == "__main__":
         timespan=args.timespan,
         start_date=start_date,
         end_date=end_date,
-        bucket=bucket,
-        storage=S3Storage(),
+        storage=S3Storage(bucket),
     )

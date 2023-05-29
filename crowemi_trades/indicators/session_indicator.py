@@ -1,5 +1,5 @@
 from datetime import datetime
-from polars import DataFrame
+import polars as pl
 
 from crowemi_trades.indicators.base_indicator import BaseIndicator
 
@@ -25,21 +25,19 @@ class SessionIndicator(BaseIndicator):
     ) -> None:
         super().__init__()
 
-    def run(self, records: DataFrame, **kwargs) -> dict:
-        return list(map(lambda x: self.apply_indicator(x), records.rows))
-
-    def apply_indicator(self, record) -> dict:
-        assert record.get(
-            "ts", None
-        ), "Expecting timestamp (ts) on record. None supplied."
-        indicator = self.get_session(datetime.fromisoformat(record.get("ts")))
-        return super().apply_indicator(record, {"i_session": indicator})
+    def run(self, records: pl.DataFrame, **kwargs) -> pl.DataFrame:
+        return records.with_columns(
+            pl.col("timestamp_s").apply(self.get_session).alias("i_session")
+        )
 
     def graph():
         super().graph()
 
     @staticmethod
-    def get_session(dt: datetime) -> list:
+    def get_session(dt) -> list:
+        if type(dt) == str:
+            dt = datetime.fromisoformat(dt)
+
         session = list()
         if (dt.hour >= 21 and dt.hour <= 24) or (dt.hour >= 0 and dt.hour < 6):
             session.append("sydney")
