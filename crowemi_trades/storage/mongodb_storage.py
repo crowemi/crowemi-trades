@@ -28,32 +28,44 @@ class MongoDbStorage(BaseStorage):
     def write(self, records: dict = None, **kwargs) -> bool:
         ret: bool = True
         # TODO: we want to accept these params to derive the collection OR collection param itself
-        ticker: str = kwargs.get("ticker")
-        timespan: str = kwargs.get("timespan")
-        interval: str = kwargs.get("interval")
-        collection = f"{ticker}/{timespan}/{interval}"
+        database: str = kwargs.get("database", None)
+        collection: str = kwargs.get("collection", None)
 
         try:
-            d = self.client.get_database("data").get_collection(collection)
+            d = self.client.get_database(database).get_collection(collection)
             d.insert_many(records)
-            return True
+            ret = True
         except BulkWriteError as e:
             # we first attempt bulk insert, catch failed duplicate key on unique index and process as replace
             if e.code == 65:
-                self.update(records, collection=collection)
-                print(e)
+                ret = self.update(records, database=database, collection=collection)
         except Exception as e:
+            # TODO: log exception
             print(e)
+            ret = False
         finally:
             return ret
 
     def update(self, records: dict, **kwargs) -> bool:
-        collection: str = kwargs.get("collection")
+        ret: bool = True
         try:
-            for rec in records:
-                self.client.get_database("data").get_collection(collection).replace_one(
-                    filter={"_id": rec.get("_id")}, replacement=rec
-                )
-
+            database: str = kwargs.get("database", None)
+            collection: str = kwargs.get("collection", None)
+            if database and collection:
+                [
+                    self.client.get_database(database)
+                    .get_collection(collection)
+                    .replace_one(
+                        filter={"_id": rec.get("_id")},
+                        replacement=rec,
+                    )
+                    for rec in records
+                ]
+                ret = True
+            else:
+                ret = False
         except Exception as e:
-            print(e)
+            # TODO: log exception
+            ret = False
+        finally:
+            return ret

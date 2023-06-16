@@ -32,12 +32,12 @@ class TestUtilities(unittest.TestCase):
     def test_get_daily_data(self):
         today = datetime(year=2023, month=4, day=3) + timedelta(-1)
         # "ticket": "C:EURUSD", "interval": "5", "timespan": "minute", "bucket": "crowemi-trades", "last_modified": "20230404"
-        ret, keys = get_daily_data(
+        ret = get_daily_data(
             ticker="C:EURUSD",
             interval=5,
             timespan="minute",
             start_date=datetime(today.year, today.month, today.day),
-            end_date=datetime(today.year, 5, 1),
+            end_date=datetime(today.year, 4, 5),
             storage=self.stor,
         )
         self.assertEqual(ret, True)

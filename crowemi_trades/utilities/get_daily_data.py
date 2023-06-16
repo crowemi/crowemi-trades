@@ -58,9 +58,9 @@ def get_daily_data(
                     interval=interval,
                     date=date,
                     records=data.to_dicts(),
+                    database="data",
+                    collection=f"{ticker}/{timespan}/{interval}",
                 )
-                # TODO: log wrror
-                print(f"Failed write {date.year}-{date.month:02}-{date.day:02}")
             else:
                 print(
                     f"failed to get data for {date.year}-{date.month:02}-{date.day:02}"
