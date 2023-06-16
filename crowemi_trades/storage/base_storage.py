@@ -40,11 +40,10 @@ class BaseStorage(metaclass=ABCMeta):
             "BaseStorage.read: No base implementation for read method."
         )
 
-    # TODO: remove S3 dependencies
     @abstractmethod
     def write(
         self,
-        df: DataFrame,
+        records: dict = None,
         **kwargs,
     ) -> bool:
         """Writes contents to a file in cloud storage."""

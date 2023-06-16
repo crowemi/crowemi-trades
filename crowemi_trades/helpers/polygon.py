@@ -69,7 +69,6 @@ class PolygonHelper:
             )
             # NOTE: Forex Market is open From 5:00pm ET Sunday through 5:00pm ET on Friday
             # TODO: Add data check for period e.g. 288 periods/day for a 5-min period
-
             if raw:
                 data = json.loads(ret.data)
                 if data.get("queryCount", 0) > 0 and data.get("resultsCount") > 0:
@@ -82,6 +81,7 @@ class PolygonHelper:
                 # converts polygon aggregate objects to list of dicts, this is needed to add additional properites.
                 res = list(map(lambda x: self.to_dict(x), ret))
                 data = self.apply_timestamp(res)
+
         except Exception as e:
             # TODO: log exception
             print(e)
@@ -92,10 +92,7 @@ class PolygonHelper:
         self,
         record: Agg,
     ) -> dict:
-        ret = dict()
-        for i, v in record.__dict__.items():
-            ret[i] = v
-        return ret
+        return {i: v for i, v in record.__dict__.items()}
 
     # TODO: write unittest
     def apply_timestamp(self, records) -> list:

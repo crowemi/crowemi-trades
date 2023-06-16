@@ -49,45 +49,22 @@ def get_daily_data(
             raw=False,
         )
 
-        start_date = date - timedelta(
-            days=3
-        )  # NOTE: what if we need more than 30 days? this needs to be dynamic based on indicator
-        end_date = date - timedelta(days=1)
-        # TODO: this needs to return `results`
-        historical_data = storage.read(
-            ticker,
-            interval,
-            timespan,
-            start_date,
-            end_date,
-            True,
-        )
-        current_data = DataFrame(ret.get("data", None))
-        current_data = current_data.with_columns(pl.lit(1).alias("current"))
-
-        if historical_data:
-            historical_data = historical_data.with_columns(pl.lit(0).alias("current"))
-            current_data = BaseStorage.combine_data(current_data, historical_data)
-
-        for i in INDICATORS:
-            current_indicator = BaseIndicator.indicator_factory(INDICATORS[i])
-            current_data = current_indicator.run(
-                current_data,
-            )
-
-        current_data = current_data.filter(pl.col("current") == 1)
-        current_data = current_data.drop("current")
-
         if ret.get("status", None) == 200:
-            if not storage.write(
-                ticker=ticker,
-                timespan=timespan,
-                interval=interval,
-                date=date,
-                content=current_data,
-            ):
+            data = DataFrame(ret.get("data", None))
+            if not data.is_empty():
+                storage.write(
+                    ticker=ticker,
+                    timespan=timespan,
+                    interval=interval,
+                    date=date,
+                    records=data.to_dicts(),
+                )
                 # TODO: log wrror
                 print(f"Failed write {date.year}-{date.month:02}-{date.day:02}")
+            else:
+                print(
+                    f"failed to get data for {date.year}-{date.month:02}-{date.day:02}"
+                )
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
             failures.append(date)
@@ -147,5 +124,5 @@ if __name__ == "__main__":
         timespan=args.timespan,
         start_date=start_date,
         end_date=end_date,
-        storage=S3Storage(bucket),
+        storage=S3Storage(bucket),  # TODO: configure this terminal input
     )
