@@ -33,7 +33,6 @@ class TestS3Storage(unittest.TestCase):
         df = pl.DataFrame(data=self.content)
         try:
             ret = self.local_stor.write_parquet(
-                "crowemi-trades",
                 "test_write",
                 df,
             )

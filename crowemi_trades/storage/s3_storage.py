@@ -89,8 +89,8 @@ class S3Storage(BaseStorage):
 
     def read_content(
         self,
-        bucket: str,
         key: str,
+        bucket: str = None,
     ) -> str:
         """Reads the contents of a file from cloud storage.
         ---
@@ -99,6 +99,7 @@ class S3Storage(BaseStorage):
         """
         ret: str
         uri: str
+        bucket = bucket if bucket else self.bucket
         if self.type == "aws":
             uri = f"s3://{bucket}/{key}"
         with open(uri, transport_params={"client": self.aws_client}) as f:
@@ -133,7 +134,6 @@ class S3Storage(BaseStorage):
         """Writes contents to a file in cloud storage."""
         key = kwargs.get("key", None)
         content = kwargs.get("content", None)
-        ret: str
         uri = f"s3://{self.bucket}/{key}"
         try:
             with open(uri, "wb", transport_params={"client": self.aws_client}) as f:

@@ -48,10 +48,10 @@ class BaseIndicator(metaclass=ABCMeta):
     def default_key(dataset: DataFrame, key: str = None):
         # if key not passed or not in columns, default 'timestamp' or 't'
         if (not key) and (key not in dataset.columns):
-            if "t" in dataset.columns:
-                key = "t"
-            elif "timestamp" in dataset.columns:
-                key = "timestamp"
+            if "timestamp_d" in dataset.columns:
+                key = "timestamp_d"
+            elif "timestamp_s" in dataset.columns:
+                key = "timestamp_s"
             else:
-                raise ValueError("No key column found (t, timestamp).")
+                raise ValueError("No key column found (timestamp_d, timestamp_s).")
         return key

@@ -15,7 +15,7 @@ definition = {
     "Role": role,
     "Code": {"ImageUri": image_uri},
     "PackageType": "Image",
-    "Environment": {"Variables": {"POLYGON_KEY": polygon_key}},
+    "Environment": {"Variables": {"POLYGON_KEY": polygon_key, "MONGODB_URI": ""}},
     "Timeout": 900,
 }
 
