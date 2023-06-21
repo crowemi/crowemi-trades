@@ -64,7 +64,7 @@ class TestS3Storage(unittest.TestCase):
         self,
     ):
         self.test_write()
-        content = self.local_stor.read_content(self.bucket, self.key)
+        content = self.local_stor.read_content(bucket=self.bucket, key=self.key)
         self.assertTrue(len(content), len(json.dumps(self.content)))
 
     def test_generate_prefix(

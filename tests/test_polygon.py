@@ -15,7 +15,7 @@ class TestPolygon(unittest.TestCase):
         d = self.client.get_aggregates(
             ticker="C:EURUSD",
             timespan="minute",
-            interval=5,
+            interval=1,
             start_date="2023-01-03",
             end_date="2023-01-03",
             raw=True,
