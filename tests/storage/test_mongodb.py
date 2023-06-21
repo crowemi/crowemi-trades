@@ -11,11 +11,3 @@ class TestMongoDb(unittest.TestCase):
         uri = os.getenv("MONGODB_URI")
         self.stor = MongoDbStorage(uri)
         return super().setUp()
-
-    def test_write(self):
-        df = pl.read_json("./current_data.json")
-        self.stor.write(
-            df=df,
-            collection="C:EURUSD/minute/5",
-            database="data",
-        )
