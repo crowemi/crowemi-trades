@@ -51,5 +51,6 @@ jobs:
           ECR_REPOSITORY: crowemi-trades-lambda-get-data
           IMAGE_TAG: latest
           POLYGON_KEY: ${{ secrets.POLYGON_KEY }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
           python lambda/get_data/deploy.py
