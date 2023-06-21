@@ -1,74 +1,96 @@
 import os
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 
 from boto3 import Session
 import polars
 import pyarrow.parquet as pq
-from pyarrow import fs
+from pyarrow import fs, Table
 from smart_open import open
 
-
 from crowemi_trades.storage.base_storage import BaseStorage
+from crowemi_trades.helpers.aws import *
 
 
 class S3Storage(BaseStorage):
     def __init__(
         self,
+        bucket: str,
         access_key: str = None,
         secret_access_key: str = None,
         region: str = None,
         session: Session = None,
         endpoint_override: str = None,
     ) -> None:
-        # TODO: validate sesssion and inputs
-        if session:
-            self.aws_client = session.client(
-                "s3",
-                endpoint_url=endpoint_override,
+        if not session:
+            access_key = os.getenv(
+                "AWS_ACCESS_KEY_ID",
+                access_key,
             )
-        else:
-            session = Session(
-                aws_access_key_id=os.getenv(
-                    "AWS_ACCESS_KEY_ID",
+            secret_access_key = os.getenv(
+                "AWS_SECRET_ACCESS_KEY",
+                secret_access_key,
+            )
+            region = os.getenv(
+                "AWS_REGION",
+                region,
+            )
+            if access_key and secret_access_key:
+                session = aws_session_factory(
                     access_key,
-                ),
-                aws_secret_access_key=os.getenv(
-                    "AWS_SECRET_ACCESS_KEY",
                     secret_access_key,
-                ),
-                region_name=os.getenv(
-                    "AWS_REGION",
                     region,
-                ),
-            )
-            self.aws_client = session.client(
-                "s3",
-                endpoint_url=endpoint_override,
-            )
+                )
+            else:
+                raise Exception("Unable to create session, missing AWS credentials.")
 
+        self.aws_client = aws_client_factory(
+            session,
+            "s3",
+            region,
+            endpoint_override,
+        )
         self.session: Session = session
-        self.file_system = self._create_file_system(endpoint_override)
+        self.file_system = self._create_file_system(region, endpoint_override)
+        self.bucket = bucket
         super().__init__(type="aws")
 
-    def _create_file_system(self, endpoint_override: str = None):
+    def _create_file_system(self, region: str, endpoint_override: str = None):
         """Creates a pyarrow filesystem object."""
         return fs.S3FileSystem(
             access_key=self.session.get_credentials().access_key,
             secret_key=self.session.get_credentials().secret_key,
             session_token=self.session.get_credentials().token,
             endpoint_override=endpoint_override,
+            region=region,
         )
 
+    # TODO: write unittest
     def read(
         self,
-    ):
-        pass
+        ticker: str,
+        interval: str,
+        timespan: str,
+        start_date: datetime = None,
+        end_date: datetime = None,
+        results_only: bool = False,
+    ) -> polars.DataFrame:
+        file_list = get_list_objects(
+            self.aws_client,
+            self.bucket,
+            prefix=self.generate_prefix(ticker, interval, timespan),
+            start_date=start_date,
+            end_date=end_date,
+        )
+        ret = self.read_parquet(file_list)
+        # this returns the embedded results set only
+        if results_only:
+            ret = self._get_results_only(ret)
+        return ret
 
     def read_content(
         self,
-        bucket: str,
         key: str,
+        bucket: str = None,
     ) -> str:
         """Reads the contents of a file from cloud storage.
         ---
@@ -77,133 +99,55 @@ class S3Storage(BaseStorage):
         """
         ret: str
         uri: str
+        bucket = bucket if bucket else self.bucket
         if self.type == "aws":
             uri = f"s3://{bucket}/{key}"
         with open(uri, transport_params={"client": self.aws_client}) as f:
             ret = f.read()
         return ret
 
+    def read_parquet(
+        self,
+        file_list: list,
+    ) -> polars.DataFrame:
+        """Reads a parquet object from S3."""
+        ret = None
+        try:
+            dataset = pq.ParquetDataset(
+                # NOTE: file must contain bucket name
+                file_list,
+                filesystem=self.file_system,
+            )
+            ret = polars.from_arrow(dataset.read())
+        except Exception as e:
+            self.LOGGER.error("Failed to read parquet file to S3.")
+            self.LOGGER.exception(e)
+            raise e
+        return ret
+
     def write(
         self,
-        bucket: str,
-        key: str,
-        contents: bytes,
+        **kwargs,
     ):
+        # TODO: this needs to handle multiple types (single file, parquet, etc.)
+        # TODO: key = f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}"
         """Writes contents to a file in cloud storage."""
-        ret: str
-        uri = f"s3://{bucket}/{key}"
+        key = kwargs.get("key", None)
+        content = kwargs.get("content", None)
+        uri = f"s3://{self.bucket}/{key}"
         try:
             with open(uri, "wb", transport_params={"client": self.aws_client}) as f:
-                f.write(contents)
+                f.write(content)
             return True
         except Exception as e:
             self.LOGGER.error(e)
             return False
 
-    def get_list_objects(
-        self,
-        bucket: str,
-        prefix: str,
-        limit: int = None,
-        start_date: datetime = None,
-        end_date: datetime = None,
-    ) -> list:
-        """A method to get a listing of objects from S3.
-
-        Args:
-            bucket (str): The name of the S3 bucket to query.
-            prefix (str): The prefix of the objects to list.
-            limit (int, optional): The maximum number of objects to return. Defaults to None, which means no limit.
-            start_date (datetime, optional): The earliest date of the objects to list. Defaults to None, which means no filter by date.
-            end_date (datetime, optional): The latest date of the objects to list. Defaults to None, which means no filter by date.
-
-        Returns:
-            list: A list of dictionaries containing information about the objects, such as key, size, last modified date, etc.
-
-        Raises:
-            ClientError: If there is an error in communicating with the S3 service.
-        """
-        list_objects = list()
-        next_token = None
-        bucket = bucket if bucket else self.bucket
-        while True:
-            if next_token:
-                ret = self.aws_client.list_objects_v2(
-                    Bucket=bucket,
-                    Prefix=prefix,
-                    ContinuationToken=next_token,
-                )
-            else:
-                ret = self.aws_client.list_objects_v2(
-                    Bucket=bucket,
-                    Prefix=prefix,
-                )
-            if "Contents" in ret:
-                list(map(lambda x: list_objects.append(x), ret["Contents"]))
-                if "NextContinuationToken" in ret:
-                    next_token = ret["NextContinuationToken"]
-                    break
-                else:
-                    break
-            else:
-                self.LOGGER.warning(f"No objects at path s3://{bucket}/{prefix}.")
-                break
-        return list_objects
-
-    def read_all_parquet(
-        self,
-        bucket: str,
-        file_list: list,
-    ) -> polars.DataFrame:
-        """Reads multiple files from storage into a single dataframe.
-
-        Args:
-            bucket (str): The name of the S3 bucket containing the files.
-            file_list (list): The list of dictionaries containing information about the files, such as key, size, etc.
-
-        Returns:
-            polars.DataFrame: A dataframe containing the data from all the files.
-
-        Raises:
-            ClientError: If there is an error in communicating with the S3 service.
-            ValueError: If the file list is empty or contains invalid files.
-        """
-        primary = list[polars.DataFrame()]
-        file_list = list(map(lambda x: {"key": x["Key"], "bucket": bucket}, file_list))
-        with ThreadPoolExecutor(5) as tp:
-            primary = list(tp.map(self._read_from_list_object, file_list))
-
-        if len(primary) > 0:
-            ret = polars.DataFrame()
-            for df in primary:
-                ret = self._combine_data(ret, df)
-        return ret
-
-    def _read_from_list_object(
-        self,
-        keys: list,
-    ) -> polars.DataFrame:
-        return self.read_parquet(keys["bucket"], keys["key"])
-
-    def read_parquet(
-        self,
-        bucket: str,
-        key: str,
-    ) -> polars.DataFrame:
-        """Reads a parquet object from S3."""
-        ret = None
-
-        try:
-            dataset = pq.ParquetDataset(f"{bucket}/{key}", filesystem=self.file_system)
-            ret = polars.from_arrow(dataset.read())
-        except Exception as e:
-            self.LOGGER.error("Failed to read parquet file to S3.")
-            self.LOGGER.exception(e)
-        return ret
+    def write_content(self):
+        pass
 
     def write_parquet(
         self,
-        bucket: str,
         key: str,
         df: polars.DataFrame,
     ) -> bool:
@@ -211,8 +155,6 @@ class S3Storage(BaseStorage):
 
         Parameters
         ----------
-        bucket : str
-            The name of the S3 bucket where the parquet object will be stored.
         key : str
             The S3 key for the parquet object, excluding the extension. The extension will be added based on the compression type.
         df : polars.DataFrame
@@ -232,23 +174,43 @@ class S3Storage(BaseStorage):
         try:
             # TODO: check key for extension, or add extension param
             compression = "gzip"  # TODO: support multiple compression types
-            data, schema = self.create_data_table(df)
+            table: Table = df.to_arrow()
             pq.ParquetWriter(
-                f"{bucket}/{key}.parquet.{compression}",
-                schema,
+                f"{self.bucket}/{key}.parquet.{compression}",
                 compression=compression,
                 filesystem=self.file_system,
-            ).write_table(data)
+                schema=table.schema,
+            ).write_table(table)
             return True
         except Exception as e:
             self.LOGGER.error("Failed to write parquet file to S3.")
             self.LOGGER.exception(e)
             return False
 
-    def create_bucket(self, bucket: str):
-        return self.aws_client.create_bucket(Bucket=bucket)
+    def _get_results_only(self, df: polars.DataFrame) -> polars.DataFrame:
+        """Returns only the results column of a dataframe."""
+        ret: list = list()
+        # NOTE: need to iterate over rows creating named list
+        list(map(lambda x: ret.append(x.results), df.rows(named=True)))
+        return polars.DataFrame(ret)
 
-    def get_buckets(self) -> list:
-        return list(
-            map(lambda x: x.get("Name"), self.aws_client.list_buckets()["Buckets"])
-        )
+    def generate_key(
+        self,
+        ticker: str,
+        interval: str,
+        timespan: str,
+    ) -> str:
+        return f"{self.bucket}/{self.generate_prefix(ticker, interval, timespan)}"
+
+    @staticmethod
+    def generate_prefix(
+        ticker: str,
+        interval: str,
+        timespan: str,
+    ) -> str:
+        """Generates a prefix for the S3 object.
+        :ticker - stock ticker (e.g. C:EURUSD)
+        :timespan - minute, hours, etc.
+        :interval
+        """
+        return f"{ticker}/{timespan}/{interval}/"

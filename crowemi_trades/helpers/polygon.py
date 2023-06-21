@@ -5,6 +5,7 @@ from datetime import datetime
 import functools
 
 from polygon import RESTClient
+from polygon.rest.aggs import Agg
 
 
 class PolygonHelper:
@@ -56,22 +57,65 @@ class PolygonHelper:
         "v": trading volume,
         "vw": volume weighted average price
         """
-        ret = self._client.get_aggs(
-            ticker,
-            interval,
-            timespan,
-            start_date,
-            end_date,
-            raw=raw,
-        )
-        data = json.loads(ret.data)
-        data["results"] = self.apply_timestamp(data.get("results"))
-        return {"status": ret.status, "data": data}
+        data = []
+        try:
+            ret = self._client.get_aggs(
+                ticker,
+                interval,
+                timespan,
+                start_date,
+                end_date,
+                raw=raw,
+            )
+            # NOTE: Forex Market is open From 5:00pm ET Sunday through 5:00pm ET on Friday
+            # TODO: Add data check for period e.g. 288 periods/day for a 5-min period
+            if raw:
+                data = json.loads(ret.data)
+                if data.get("queryCount", 0) > 0 and data.get("resultsCount") > 0:
+                    res = map(lambda x: self.to_list(x), data.get("results"))
+                    data["results"] = self.apply_timestamp(data.get("results"))
+                else:
+                    # TODO: log warning
+                    print("No results found")
+            else:
+                # converts polygon aggregate objects to list of dicts, this is needed to add additional properites.
+                res = list(map(lambda x: self.to_dict(x), ret))
+                data = self.apply_timestamp(res)
 
-    def apply_timestamp(self, records: list) -> list:
-        def append_timestamp(record: list):
-            assert record.get("t", None), "Expecting 't' element, received None"
-            record["ts"] = datetime.utcfromtimestamp(record["t"] / 1000).isoformat()
+        except Exception as e:
+            # TODO: log exception
+            print(e)
+        return {"status": 200, "data": data}
+
+    # TODO: write unittest
+    def to_dict(
+        self,
+        record: Agg,
+    ) -> dict:
+        return {i: v for i, v in record.__dict__.items()}
+
+    # TODO: write unittest
+    def apply_timestamp(self, records) -> list:
+        ret = list()
+
+        def append_timestamp(record):
+            try:
+                ts = (
+                    record.get("timestamp", None)
+                    if record.get("timestamp", None)
+                    else record.get("t", None)
+                )
+                if not ts:
+                    raise Exception(
+                        "PolygonHelper.apply_timestamp: No timestamp found at 't'."
+                    )
+                ts_d = datetime.utcfromtimestamp(ts / 1000)
+                record["timestamp_d"] = ts_d
+                record["timestamp_s"] = ts_d.isoformat()
+                ret.append(record)
+            except Exception as e:
+                # TODO: log exception
+                print(e)
 
         list(map(lambda x: append_timestamp(x), records))
-        return records
+        return ret

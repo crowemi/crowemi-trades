@@ -16,18 +16,19 @@ class ProcessGetData(ProcessCore):
     ) -> int:
         """Run the process GetData.
         ---
-        bucket - the aws bucket used for storage. \n
-        manifest_key - the aws key manifest.
+        storage -
+        manifest -
         """
         ret: int = 0  # innocent until proven guilty
         self.storage = storage
 
-        # these are specific to AWS! what is the common denominator across cloud storage? (file, file_path, etc.)
-        self.bucket: str = kwargs.get("bucket", None)
-        self.manifest_key: str = kwargs.get("manifest_key", None)
+        manifest_details = kwargs.get("manifest", None)
+        if manifest_details:
+            self.manifest_key: str = manifest_details.get("manifest_key", None)
+            self.manifest_storage: BaseStorage = manifest_details.get(
+                "manifest_storage", None
+            )
 
-        if not self.bucket:
-            raise Exception("No bucket supplied.")
         if not self.manifest_key:
             raise Exception("No manifest supplied.")
 
@@ -47,14 +48,13 @@ class ProcessGetData(ProcessCore):
         self,
         manifest: str,
     ) -> bool:
-        if self.storage.type == "aws":
-            return self.storage.write(
-                self.bucket,
-                self.manifest_key,
-                bytes(json.dumps(manifest), "utf-8"),
+        if self.manifest_storage.type == "aws":
+            return self.manifest_storage.write(
+                key=self.manifest_key,
+                content=bytes(json.dumps(manifest), "utf-8"),
             )
         else:
-            assert False, f"Unknown storage type {self.storage.type}"
+            assert False, f"Unknown storage type {self.manifest_storage.type}"
 
     def _get_manifest(
         self,
@@ -62,10 +62,9 @@ class ProcessGetData(ProcessCore):
         # pull extract instructions from S3
         try:
             ret: object
-            if self.storage.type == "aws":
+            if self.manifest_storage.type == "aws":
                 ret = json.loads(
-                    self.storage.read_content(
-                        bucket=self.bucket,
+                    self.manifest_storage.read_content(
                         key=self.manifest_key,
                     )
                 )
@@ -83,7 +82,6 @@ class ProcessGetData(ProcessCore):
         ticker = record.get("ticket", None)
         timespan = record.get("timespan", None)
         interval = record.get("interval", None)
-        bucket = record.get("bucket", None)
         # process last_modified
         last_modified = record.get("last_modified", None)
         today = datetime.utcnow()
@@ -103,7 +101,6 @@ class ProcessGetData(ProcessCore):
                 interval,
                 start_date,
                 end_date,
-                bucket,
                 self.storage,  # storage
             )
         if ret:

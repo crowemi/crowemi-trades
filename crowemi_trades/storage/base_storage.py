@@ -1,15 +1,17 @@
 import os
 import logging
+from datetime import datetime
+from abc import ABCMeta, abstractmethod
 
 from polars import DataFrame, Series, concat
-from pyarrow import Table, Schema
-
-from abc import ABCMeta, abstractmethod
+import polars as pl
 
 from crowemi_trades.helpers.logging import *
 
+
 STORAGE_TYPES = [
     "aws",
+    "mongodb",
 ]
 
 
@@ -25,84 +27,64 @@ class BaseStorage(metaclass=ABCMeta):
         self.LOGGER.debug("BaseStorage exit.")
 
     @abstractmethod
-    def write_parquet():
-        raise Exception("No base implementation for write_parquet method.")
+    def read(
+        self,
+        ticker: str,
+        interval: str,
+        timespan: str,
+        start_date: datetime = None,
+        end_date: datetime = None,
+        results_only: bool = False,
+    ) -> DataFrame:
+        raise NotImplementedError(
+            "BaseStorage.read: No base implementation for read method."
+        )
 
     @abstractmethod
     def write(
         self,
-        bucket: str,
-        key: str,
-        contents: bytes,
+        records: dict = None,
+        **kwargs,
     ) -> bool:
         """Writes contents to a file in cloud storage."""
-        raise Exception("BaseStorage.write: No base implementation for write method.")
-
-    @abstractmethod
-    def read_parquet():
-        raise Exception(
-            "BaseStorage.read_parquet: No base implementation for read_parquet method."
+        raise NotImplementedError(
+            "BaseStorage.write: No base implementation for write method."
         )
 
-    @abstractmethod
-    def read():
-        raise Exception("BaseStorage.read: No base implementation for read method.")
-
-    @abstractmethod
-    def read_content(
-        self,
-        bucket: str,
-        key: str,
-    ) -> str:
-        raise NotImplementedError()
-
-    def create_data_table(self, df: DataFrame) -> tuple[Table, Schema]:
-        """Creates a pyarrow Table object from a polars dataframe."""
-        try:
-            data = Table.from_pandas(df.to_pandas())
-            schema = Table.from_pandas(df.to_pandas()).schema
-            return data, schema
-        except Exception as e:
-            self.LOGGER.error("Failed to create parquet dataframe.")
-            self.LOGGER.exception(e)
-            raise e
-
-    def _combine_data(
-        self,
+    @staticmethod
+    def combine_data(
         primary: DataFrame,
         incoming: DataFrame,
     ) -> DataFrame:
         """Combines raw dataframes into single dataframe."""
-        self.LOGGER.debug("Enter _combine_data.")
         try:
             if primary.is_empty():
                 primary = incoming
             else:
                 if len(primary.columns) != len(incoming.columns):
-                    self.LOGGER.warn(
-                        f"DataFrame sizes don't match. Primary ({len(primary.columns)}); Incoming ({len(incoming.columns)})."
-                    )
-                    self.LOGGER.warn("Attempting to reconcile descrepencies.")
+                    # TODO: DRY!
                     for col in primary.columns:
                         if not col in incoming.columns:
-                            incoming.with_column(
-                                Series(name=col, values=None),
-                            )
-                            self.LOGGER.debug(
-                                f"{col} added to incoming. Incoming ({len(incoming.columns)})."
+                            dtype = primary.schema[col]
+                            # pl.Series('empty lists', [[]], dtype=pl.List),
+                            incoming = incoming.with_columns(
+                                pl.lit(None).alias(col).cast(dtype)
                             )
                     for col in incoming.columns:
                         if not col in primary.columns:
-                            primary.with_column(
-                                Series(name=col, values=None),
-                            )
-                            self.LOGGER.debug(
-                                f"{col} added to primary. Primary ({len(primary.columns)})."
+                            dtype = incoming.schema[col]
+                            primary = primary.with_columns(
+                                pl.lit(None).alias(col).cast(dtype)
                             )
 
-                primary = concat([primary, incoming], how="vertical")
+                primary = concat(
+                    [
+                        primary.select(sorted(primary.columns)),
+                        incoming.select(sorted(incoming.columns)),
+                    ],
+                    how="vertical",
+                )
         except Exception as e:
-            self.LOGGER.error("Unable to concat dataframes")
-            self.LOGGER.exception(e)
-        self.LOGGER.debug("Exit _combine_data.")
+            print("Unable to concat dataframes")
+            raise e
         return primary

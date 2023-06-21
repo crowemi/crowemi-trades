@@ -1,12 +1,16 @@
 import os
 import argparse
-import json
 from datetime import datetime, timedelta
 from polars import DataFrame
+import polars as pl
 
 from crowemi_trades.helpers.polygon import PolygonHelper
 from crowemi_trades.storage.base_storage import BaseStorage
-from crowemi_trades.storage.s3_storage import S3Storage
+
+# FIXME: we shouldn't need this ref
+from crowemi_trades.storage.s3_storage import (
+    S3Storage,
+)
 from crowemi_trades.indicators.base_indicator import BaseIndicator
 from crowemi_trades.indicators.enum import INDICATORS
 
@@ -17,7 +21,6 @@ def get_daily_data(
     interval: int,
     start_date: datetime,
     end_date: datetime,
-    bucket: str,
     storage: BaseStorage,
 ):
     """A process function for getting and storing data. \n
@@ -43,33 +46,31 @@ def get_daily_data(
             timespan,
             f"{date.year}-{date.month:02}-{date.day:02}",
             f"{date.year}-{date.month:02}-{date.day:02}",
-            raw=True,
+            raw=False,
         )
 
-        # apply indicators -- threadpool
-        indicators = list()
-        for i in INDICATORS:
-            current_indicator = BaseIndicator.indicator_factory(i)
-            results = ret.get("data", None).get("results", None)
-            list(map(lambda x: current_indicator.apply_indicator(x), results))
-
-        success_keys = list()
         if ret.get("status", None) == 200:
-            df = DataFrame(
-                data=ret.get("data", None),
-            )
-            key = f"{ticker}/{timespan}/{interval}/{date.year}/{date.month:02}/{date.year}{date.month:02}{date.day:02}"
-            stor_ret = storage.write_parquet(
-                bucket,
-                key,
-                df,
-            )
-            if stor_ret:
-                success_keys.append(key)
+            data = DataFrame(ret.get("data", None))
+            if not data.is_empty():
+                storage.write(
+                    ticker=ticker,
+                    timespan=timespan,
+                    interval=interval,
+                    date=date,
+                    records=data.to_dicts(),
+                    database="data",
+                    collection=f"{ticker}/{timespan}/{interval}",
+                )
+            else:
+                print(
+                    f"failed to get data for {date.year}-{date.month:02}-{date.day:02}"
+                )
         else:
             print(f"Failed processing {date.year}-{date.month:02}-{date.day:02}")
             failures.append(date)
-    return True if len(failures) == 0 else False, success_keys
+
+    # TODO: determine how we handle errors?
+    return True
 
 
 if __name__ == "__main__":
@@ -123,6 +124,5 @@ if __name__ == "__main__":
         timespan=args.timespan,
         start_date=start_date,
         end_date=end_date,
-        bucket=bucket,
-        storage=S3Storage(),
+        storage=S3Storage(bucket),  # TODO: configure this terminal input
     )

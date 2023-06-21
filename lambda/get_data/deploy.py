@@ -7,6 +7,7 @@ function_name = "crowemi-trades-lambda-get-data"
 role = "arn:aws:iam::926488920335:role/crowemi-trades-lambda-get-data"
 image_uri = f"{os.getenv('ECR_REGISTRY')}/{os.getenv('ECR_REPOSITORY')}:{os.getenv('IMAGE_TAG')}"
 polygon_key = os.getenv("POLYGON_KEY")
+mongodb_uri = os.getenv("MONGODB_URI")
 
 client = boto3.client("lambda")
 
@@ -15,7 +16,9 @@ definition = {
     "Role": role,
     "Code": {"ImageUri": image_uri},
     "PackageType": "Image",
-    "Environment": {"Variables": {"POLYGON_KEY": polygon_key}},
+    "Environment": {
+        "Variables": {"POLYGON_KEY": polygon_key, "MONGODB_URI": mongodb_uri}
+    },
     "Timeout": 900,
 }
 

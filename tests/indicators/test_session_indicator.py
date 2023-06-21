@@ -1,6 +1,6 @@
+import unittest
 import os
 from datetime import datetime
-import unittest
 
 from crowemi_trades.storage.s3_storage import S3Storage
 from crowemi_trades.indicators.session_indicator import SessionIndicator
@@ -9,14 +9,18 @@ from crowemi_trades.indicators.session_indicator import SessionIndicator
 class TestSessionIndicator(unittest.TestCase):
     def setUp(self) -> None:
         self.stor = S3Storage(
+            bucket="crowemi-trades",
             access_key=os.getenv("AWS_ACCESS_KEY_ID", "test"),
             secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
             endpoint_override="http://localhost:4566",
             region="us-east-1",
         )
         self.session = SessionIndicator()
-        self.bucket = "crowemi-trades"
         return super().setUp()
+
+    def test_run(self):
+        # TODO: create test for run method
+        pass
 
     def test_session(self):
         today = datetime.now()
@@ -67,13 +71,6 @@ class TestSessionIndicator(unittest.TestCase):
                     len(session) == 1
                 ), f"Hour {t.hour} does not meet session length. Length {len(session)}"
                 assert "sydney" in session, f"Hour {t.hour} has no sydney session."
-
-    def test_apply_indicator(self):
-        record = {
-            "ts": datetime(2023, 1, 2, 23, 50).isoformat(),
-        }
-        new_record = self.session.apply_indicator(record)
-        self.assertIn("sydney", new_record["i_session"])
 
 
 if __name__ == "__main__":
