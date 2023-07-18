@@ -7,13 +7,11 @@ from crowemi_trades.storage.s3_storage import S3Storage
 
 
 def handler(event, context):
+    mongo_storage = MongoDbStorage(os.getenv("MONGODB_URI", None))
     process = ProcessGetData().run(
-        storage=MongoDbStorage(os.getenv("MONGODB_URI", None)),
+        storage=mongo_storage,
         manifest={
-            "manifest_key": "manifest.json",
-            "manifest_storage": S3Storage(
-                bucket="crowemi-trades", session=boto3.Session()
-            ),
+            "manifest_storage": mongo_storage,
         },
     )
     if process == False:
