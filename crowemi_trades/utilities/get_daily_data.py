@@ -11,8 +11,6 @@ from crowemi_trades.storage.base_storage import BaseStorage
 from crowemi_trades.storage.s3_storage import (
     S3Storage,
 )
-from crowemi_trades.indicators.base_indicator import BaseIndicator
-from crowemi_trades.indicators.enum import INDICATORS
 
 
 def get_daily_data(
