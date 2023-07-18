@@ -35,6 +35,7 @@ class BaseStorage(metaclass=ABCMeta):
         start_date: datetime = None,
         end_date: datetime = None,
         results_only: bool = False,
+        **kwargs,
     ) -> DataFrame:
         raise NotImplementedError(
             "BaseStorage.read: No base implementation for read method."
