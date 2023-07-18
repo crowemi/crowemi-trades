@@ -29,9 +29,6 @@ class ProcessGetData(ProcessCore):
                 "manifest_storage", None
             )
 
-        if not self.manifest_key:
-            raise Exception("No manifest supplied.")
-
         # get manifest
         manifest = self._get_manifest()
         # process manifest
@@ -53,6 +50,12 @@ class ProcessGetData(ProcessCore):
                 key=self.manifest_key,
                 content=bytes(json.dumps(manifest), "utf-8"),
             )
+        if self.manifest_storage.type == "mongodb":
+            return self.manifest_storage.write(
+                database="data",
+                collection="manifest",
+                records=manifest,
+            )
         else:
             assert False, f"Unknown storage type {self.manifest_storage.type}"
 
@@ -63,11 +66,20 @@ class ProcessGetData(ProcessCore):
         try:
             ret: object
             if self.manifest_storage.type == "aws":
+                if not self.manifest_key:
+                    raise Exception("No manifest supplied.")
+
                 ret = json.loads(
                     self.manifest_storage.read_content(
                         key=self.manifest_key,
                     )
                 )
+            if self.manifest_storage.type == "mongodb":
+                status, ret = self.manifest_storage.read(
+                    database="data", collection="manifest"
+                )
+                if not status:
+                    raise Exception("Failed to read manifest.")
             else:
                 raise Exception("Unknown storage type.")
             return ret
