@@ -16,20 +16,45 @@ class MongoDbStorage(BaseStorage):
 
     def read(
         self,
-        ticker: str,
-        interval: str,
-        timespan: str,
-        start_date: datetime = None,
-        end_date: datetime = None,
-        results_only: bool = False,
-    ) -> pl.DataFrame:
-        pass
+        **kwargs,
+    ):
+        ret: bool = True
+        res = list()
+
+        database, collection = self.get_details(kwargs)
+        predicate = kwargs.get("predicate", {})
+        limit = kwargs.get("limit", None)
+        # default sort timestamp descending
+        sort = kwargs.get("sort", [("timestamp", pymongo.DESCENDING)])
+
+        try:
+            c = self.client.get_database(database).get_collection(collection)
+            if limit:
+                [
+                    res.append(record)
+                    for record in c.find(
+                        predicate,
+                        sort=sort,
+                    ).limit(limit)
+                ]
+            else:
+                [
+                    res.append(record)
+                    for record in c.find(
+                        predicate,
+                        sort=sort,
+                    )
+                ]
+        except Exception as e:
+            # TODO: log exception
+            print(e)
+            ret = False
+        finally:
+            return ret, res
 
     def write(self, records: dict = None, **kwargs) -> bool:
         ret: bool = True
-        # TODO: we want to accept these params to derive the collection OR collection param itself
-        database: str = kwargs.get("database", None)
-        collection: str = kwargs.get("collection", None)
+        database, collection = self.get_details(kwargs)
 
         try:
             d = self.client.get_database(database).get_collection(collection)
@@ -45,6 +70,11 @@ class MongoDbStorage(BaseStorage):
             ret = False
         finally:
             return ret
+
+    def get_details(self, kwargs):
+        database: str = kwargs.get("database", None)
+        collection: str = kwargs.get("collection", None)
+        return database, collection
 
     def update(self, records: dict, **kwargs) -> bool:
         ret: bool = True

@@ -14,11 +14,7 @@ class ProcessGetData(ProcessCore):
         storage: BaseStorage,
         **kwargs,
     ) -> int:
-        """Run the process GetData.
-        ---
-        storage -
-        manifest -
-        """
+        """Run the process."""
         ret: int = 0  # innocent until proven guilty
         self.storage = storage
 
