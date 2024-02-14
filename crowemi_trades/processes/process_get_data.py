@@ -102,7 +102,7 @@ class ProcessGetData(ProcessCore):
             year=today.year, month=today.month, day=today.day
         ) + timedelta(days=-1)
 
-        if start_date < end_date:
+        if start_date <= end_date:
             ret = get_daily_data(
                 ticker,
                 timespan,
